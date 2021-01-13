@@ -3,7 +3,8 @@ import 'dart:io';
 import 'package:args/args.dart';
 import 'package:glob/glob.dart';
 
-import 'package:db_benchmark/benchmark.dart';
+import 'package:db_benchmark/objectbox.dart';
+import 'package:db_benchmark/time_tracker.dart';
 
 void main(List<String> arguments) {
   exitCode = 0; // presume success
@@ -33,7 +34,8 @@ void main(List<String> arguments) {
     }
   }
 
-  final bench = Executor(dbDir);
+  final tracker = TimeTracker();
+  final bench = Executor(dbDir, tracker);
 
   final inserts = bench.prepareData(count);
 
@@ -48,7 +50,7 @@ void main(List<String> arguments) {
   }
 
   bench.close();
-  bench.printTimes([
+  tracker.printTimes([
     'putMany',
     'readAll',
     'updateAll',
