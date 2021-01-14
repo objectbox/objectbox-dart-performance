@@ -21,14 +21,15 @@ class Executor extends ExecutorBase {
 
   void close() => store.close();
 
-  void putMany(List<TestEntity> items) =>
-      tracker.track('putMany', () => box.putMany(items));
+  Future<void> putMany(List<TestEntity> items) =>
+      Future.value(tracker.track('putMany', () => box.putMany(items)));
 
-  void updateAll(List<TestEntity> items) =>
-      tracker.track('updateAll', () => box.putMany(items));
+  Future<void> updateAll(List<TestEntity> items) =>
+      Future.value(tracker.track('updateAll', () => box.putMany(items)));
 
   Future<List<TestEntity>> readAll() =>
       Future.value(tracker.track('readAll', () => box.getAll()));
 
-  void removeAll() => tracker.track('removeAll', () => box.removeAll());
+  Future<void> removeAll() =>
+      Future.value(tracker.track('removeAll', () => box.removeAll()));
 }

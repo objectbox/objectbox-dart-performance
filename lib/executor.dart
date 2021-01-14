@@ -23,11 +23,11 @@ abstract class ExecutorBase {
         'changeValues', () => items.forEach((item) => item.tLong *= 2));
   }
 
-  void putMany(List<TestEntity> items);
+  Future<void> putMany(List<TestEntity> items);
 
-  void updateAll(List<TestEntity> items);
+  Future<void> updateAll(List<TestEntity> items);
 
   Future<List<TestEntity>> readAll();
 
-  void removeAll();
+  Future<void> removeAll();
 }

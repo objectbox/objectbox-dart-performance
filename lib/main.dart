@@ -5,8 +5,9 @@ import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 
 import 'executor.dart';
-import 'objectbox.dart' as obx;
-import 'sqflite.dart' as sqf;
+import 'obx_executor.dart' as obx;
+import 'sqf_executor.dart' as sqf;
+import 'hive_executor.dart' as hive;
 import 'time_tracker.dart';
 
 void main() {
@@ -66,6 +67,7 @@ class _MyHomePageState extends State<MyHomePage> {
   TimeTracker _tracker;
   obx.Executor _obxExecutor;
   sqf.Executor _sqfExecutor;
+  hive.Executor _hiveExecutor;
 
   void _print(String str) {
     setState(() {
@@ -85,6 +87,8 @@ class _MyHomePageState extends State<MyHomePage> {
           obx.Executor(Directory(path.join(dir.path, 'objectbox')), _tracker);
       _sqfExecutor = await sqf.Executor.create(
           Directory(path.join(dir.path, 'sqflite')), _tracker);
+      _hiveExecutor = await hive.Executor.create(
+          Directory(path.join(dir.path, 'hive')), _tracker);
     });
   }
 
@@ -98,6 +102,8 @@ class _MyHomePageState extends State<MyHomePage> {
         return _runBenchmarkOn(_obxExecutor);
       case 2:
         return _runBenchmarkOn(_sqfExecutor);
+      case 3:
+        return _runBenchmarkOn(_hiveExecutor);
     }
   }
 
@@ -107,11 +113,11 @@ class _MyHomePageState extends State<MyHomePage> {
     final runs = int.parse(_runsController.value.text);
 
     for (var i = 0; i < runs; i++) {
-      bench.putMany(inserts);
+      await bench.putMany(inserts);
       final items = await bench.readAll();
       bench.changeValues(items);
-      bench.updateAll(items);
-      bench.removeAll();
+      await bench.updateAll(items);
+      await bench.removeAll();
 
       setState(() {
         _result = '${i + 1}/$runs finished';
@@ -161,6 +167,10 @@ class _MyHomePageState extends State<MyHomePage> {
                     DropdownMenuItem(
                       child: Text("sqflite"),
                       value: 2,
+                    ),
+                    DropdownMenuItem(
+                      child: Text("Hive"),
+                      value: 3,
                     ),
                   ],
                   onChanged: (value) {
