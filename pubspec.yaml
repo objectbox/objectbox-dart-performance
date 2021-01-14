@@ -1,11 +1,17 @@
-name: db_benchmark
+name: benchapp
 description: Simple Dart DB performance benchmark
 
+publish_to: 'none' # Remove this line if you wish to publish to pub.dev
+
 environment:
-  sdk: ">=2.6.0 <3.0.0"
+  sdk: ">=2.7.0 <3.0.0"
 
 dependencies:
-  objectbox: any
+  flutter:
+    sdk: flutter
+  objectbox:
+  objectbox_flutter_libs:
+  path_provider: ^1.6.27
 
 dev_dependencies:
   objectbox_generator: any
@@ -14,5 +20,7 @@ dev_dependencies:
 dependency_overrides:
   objectbox:
     path: ../objectbox-dart
+  objectbox_flutter_libs:
+    path: ../objectbox-dart/flutter_libs
   objectbox_generator:
     path: ../objectbox-dart/generator

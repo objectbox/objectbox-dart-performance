@@ -3,8 +3,8 @@ import 'dart:io';
 import 'package:args/args.dart';
 import 'package:glob/glob.dart';
 
-import 'package:db_benchmark/objectbox.dart';
-import 'package:db_benchmark/time_tracker.dart';
+import 'package:benchapp/objectbox.dart';
+import 'package:benchapp/time_tracker.dart';
 
 void main(List<String> arguments) {
   exitCode = 0; // presume success
@@ -50,7 +50,7 @@ void main(List<String> arguments) {
   }
 
   bench.close();
-  tracker.printTimes([
+  tracker.printTimes(functions: [
     'putMany',
     'readAll',
     'updateAll',
