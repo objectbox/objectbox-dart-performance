@@ -6,7 +6,7 @@ import 'package:glob/glob.dart';
 import 'package:benchapp/objectbox.dart';
 import 'package:benchapp/time_tracker.dart';
 
-void main(List<String> arguments) {
+void main(List<String> arguments) async {
   exitCode = 0; // presume success
 
   final argDb = 'db';
@@ -41,7 +41,7 @@ void main(List<String> arguments) {
 
   for (var i = 0; i < runs; i++) {
     bench.putMany(inserts);
-    final items = bench.readAll();
+    final items = await bench.readAll();
     bench.changeValues(items);
     bench.updateAll(items);
     bench.removeAll();

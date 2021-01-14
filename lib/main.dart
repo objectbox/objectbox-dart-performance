@@ -1,7 +1,12 @@
+import 'dart:io';
+
+import 'package:path/path.dart' as path;
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 
+import 'executor.dart';
 import 'objectbox.dart' as obx;
+import 'sqflite.dart' as sqf;
 import 'time_tracker.dart';
 
 void main() {
@@ -30,7 +35,7 @@ class MyApp extends StatelessWidget {
         // closer together (more dense) than on mobile platforms.
         visualDensity: VisualDensity.adaptivePlatformDensity,
       ),
-      home: MyHomePage(title: 'Flutter Demo Home Page'),
+      home: MyHomePage(title: 'DB Benchmark'),
     );
   }
 }
@@ -54,12 +59,13 @@ class MyHomePage extends StatefulWidget {
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  var _name = 'ObjectBox';
+  var _db = 1;
   final _countController = TextEditingController(text: '10000');
   final _runsController = TextEditingController(text: '10');
   var _result = 'not executed yet';
   TimeTracker _tracker;
-  obx.Executor _objectboxExecutor;
+  obx.Executor _obxExecutor;
+  sqf.Executor _sqfExecutor;
 
   void _print(String str) {
     setState(() {
@@ -71,25 +77,38 @@ class _MyHomePageState extends State<MyHomePage> {
   void initState() {
     super.initState();
 
-    getApplicationDocumentsDirectory().then((dir) {
+    getApplicationDocumentsDirectory().then((Directory dir) async {
       _tracker = TimeTracker(outputFn: _print);
-      _objectboxExecutor = obx.Executor(dir, _tracker);
+      if (dir.existsSync()) dir.deleteSync(recursive: true);
+      dir.createSync();
+      _obxExecutor =
+          obx.Executor(Directory(path.join(dir.path, 'objectbox')), _tracker);
+      _sqfExecutor = await sqf.Executor.create(
+          Directory(path.join(dir.path, 'sqflite')), _tracker);
     });
   }
 
   void _runBenchmark() async {
     setState(() {
-      _result = '';
+      _result = 'Benchmark starting...';
     });
 
+    switch(_db) {
+      case 1:
+        return _runBenchmarkOn(_obxExecutor);
+      case 2:
+        return _runBenchmarkOn(_sqfExecutor);
+    }
+  }
+
+  void _runBenchmarkOn(ExecutorBase bench) async {
     _tracker.clear();
-    final bench = _objectboxExecutor;
     final inserts = bench.prepareData(int.parse(_countController.value.text));
     final runs = int.parse(_runsController.value.text);
 
     for (var i = 0; i < runs; i++) {
       bench.putMany(inserts);
-      final items = bench.readAll();
+      final items = await bench.readAll();
       bench.changeValues(items);
       bench.updateAll(items);
       bench.removeAll();
@@ -132,7 +151,23 @@ class _MyHomePageState extends State<MyHomePage> {
           children: [
             Row(children: [
               Spacer(),
-              Text("DB: $_name"),
+              DropdownButton(
+                  value: _db,
+                  items: [
+                    DropdownMenuItem(
+                      child: Text('ObjectBox'),
+                      value: 1,
+                    ),
+                    DropdownMenuItem(
+                      child: Text("sqflite"),
+                      value: 2,
+                    ),
+                  ],
+                  onChanged: (value) {
+                    setState(() {
+                      _db = value;
+                    });
+                  }),
               Spacer(),
               Expanded(
                   child: TextField(

@@ -2,52 +2,33 @@ import 'dart:io';
 
 import 'package:objectbox/objectbox.dart';
 
+import 'executor.dart';
 import 'time_tracker.dart';
 import 'model.dart';
 import 'objectbox.g.dart';
 
-class Executor {
-  final TimeTracker _tracker;
+class Executor extends ExecutorBase {
   final Store store;
 
   /*late final*/
   Box<TestEntity> box;
 
-  Executor(Directory dbDir, this._tracker)
-      : store = Store(getObjectBoxModel(), directory: dbDir.path) {
+  Executor(Directory dbDir, TimeTracker tracker)
+      : store = Store(getObjectBoxModel(), directory: dbDir.path),
+        super(tracker) {
     box = Box<TestEntity>(store);
   }
 
   void close() => store.close();
 
-  List<TestEntity> prepareData(int count) {
-    return _tracker.track('prepareData', () {
-      final result = <TestEntity>[];
-      for (var i = 0; i < count; i++) {
-        result.add(TestEntity.full('Entity #$i', i, i, i.toDouble()));
-      }
-      return result;
-    });
-  }
+  void putMany(List<TestEntity> items) =>
+      tracker.track('putMany', () => box.putMany(items));
 
-  void putMany(List<TestEntity> items) {
-    _tracker.track('putMany', () => box.putMany(items));
-  }
+  void updateAll(List<TestEntity> items) =>
+      tracker.track('updateAll', () => box.putMany(items));
 
-  void updateAll(List<TestEntity> items) {
-    _tracker.track('updateAll', () => box.putMany(items));
-  }
+  Future<List<TestEntity>> readAll() =>
+      Future.value(tracker.track('readAll', () => box.getAll()));
 
-  List<TestEntity> readAll() {
-    return _tracker.track('readAll', () => box.getAll());
-  }
-
-  void removeAll() {
-    _tracker.track('removeAll', () => box.removeAll());
-  }
-
-  void changeValues(List<TestEntity> items) {
-    _tracker.track(
-        'changeValues', () => items.forEach((item) => item.tLong *= 2));
-  }
+  void removeAll() => tracker.track('removeAll', () => box.removeAll());
 }

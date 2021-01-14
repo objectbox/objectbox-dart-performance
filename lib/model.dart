@@ -16,5 +16,5 @@ class TestEntity {
 
   TestEntity();
 
-  TestEntity.full(this.tString, this.tInt, this.tLong, this.tDouble);
+  TestEntity.full(this.id, this.tString, this.tInt, this.tLong, this.tDouble);
 }
