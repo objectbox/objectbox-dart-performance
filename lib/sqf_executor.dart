@@ -37,6 +37,8 @@ create table $_table (
 ''')),
           tracker);
 
+  void close() => _db.close();
+
   Future<void> putMany(List<TestEntity> items) async =>
       tracker.trackAsync('putMany', () async {
         final tx = _db.batch();

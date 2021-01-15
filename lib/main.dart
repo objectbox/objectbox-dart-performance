@@ -92,12 +92,20 @@ class _MyHomePageState extends State<MyHomePage> {
     });
   }
 
+  @override
+  void dispose() {
+    _obxExecutor?.close();
+    _sqfExecutor?.close();
+    _hiveExecutor?.close();
+    super.dispose();
+  }
+
   void _runBenchmark() async {
     setState(() {
       _result = 'Benchmark starting...';
     });
 
-    switch(_db) {
+    switch (_db) {
       case 1:
         return _runBenchmarkOn(_obxExecutor);
       case 2:
