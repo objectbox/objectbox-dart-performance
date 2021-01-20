@@ -121,11 +121,12 @@ class _MyHomePageState extends State<MyHomePage> {
     final runs = int.parse(_runsController.value.text);
 
     for (var i = 0; i < runs; i++) {
-      await bench.putMany(inserts);
-      final items = await bench.readAll();
+      await bench.insertMany(inserts);
+      final ids = inserts.map((e) => e.id).toList(growable: false);
+      final items = await bench.readMany(ids);
       bench.changeValues(items);
-      await bench.updateAll(items);
-      await bench.removeAll();
+      await bench.updateMany(items);
+      await bench.removeMany(ids);
 
       setState(() {
         _result = '${i + 1}/$runs finished';
@@ -135,10 +136,10 @@ class _MyHomePageState extends State<MyHomePage> {
 
     _result = '';
     _tracker.printTimes(avgOnly: true, functions: [
-      'putMany',
-      'readAll',
-      'updateAll',
-      'removeAll',
+      'insertMany',
+      'readMany',
+      'updateMany',
+      'removeMany',
     ]);
   }
 

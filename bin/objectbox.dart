@@ -3,7 +3,7 @@ import 'dart:io';
 import 'package:args/args.dart';
 import 'package:glob/glob.dart';
 
-import 'package:benchapp/objectbox.dart';
+import 'package:benchapp/obx_executor.dart';
 import 'package:benchapp/time_tracker.dart';
 
 void main(List<String> arguments) async {
@@ -40,20 +40,21 @@ void main(List<String> arguments) async {
   final inserts = bench.prepareData(count);
 
   for (var i = 0; i < runs; i++) {
-    bench.putMany(inserts);
-    final items = await bench.readAll();
+    bench.insertMany(inserts);
+    final ids = inserts.map((e) => e.id).toList(growable: false);
+    final items = await bench.readMany(ids);
     bench.changeValues(items);
-    bench.updateAll(items);
-    bench.removeAll();
+    bench.updateMany(items);
+    bench.removeMany(ids);
 
     print('${i + 1}/$runs finished');
   }
 
   bench.close();
   tracker.printTimes(functions: [
-    'putMany',
-    'readAll',
-    'updateAll',
-    'removeAll',
+    'insertMany',
+    'readMany',
+    'updateMany',
+    'removeMany',
   ]);
 }

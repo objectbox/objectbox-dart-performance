@@ -39,24 +39,31 @@ create table $_table (
 
   void close() => _db.close();
 
-  Future<void> putMany(List<TestEntity> items) async =>
-      tracker.trackAsync('putMany', () async {
+  Future<void> insertMany(List<TestEntity> items) async =>
+      tracker.trackAsync('insertMany', () async {
         final tx = _db.batch();
         items.forEach((object) => tx.insert(_table, toMap(object)));
-        await tx.commit();
+        final ids = await tx.commit();
+        for (int i = 0; i < ids.length; i++) {
+          items[i].id = ids[i];
+        }
       });
 
-  Future<void> updateAll(List<TestEntity> items) async =>
-      tracker.trackAsync('updateAll', () async {
+  Future<void> updateMany(List<TestEntity> items) async =>
+      tracker.trackAsync('updateMany', () async {
         final tx = _db.batch();
         items.forEach((object) => tx.update(_table, toMap(object),
             where: 'id = ?', whereArgs: [object.id]));
         await tx.commit();
       });
 
-  Future<List<TestEntity>> readAll() => tracker.trackAsync(
-      'readAll', () async => (await _db.query(_table)).map(fromMap).toList());
+  Future<List<TestEntity>> readMany(List<int> ids) => tracker.trackAsync(
+      'readMany',
+      () async => (await _db.query(_table, where: 'id in (${ids.join(',')})'))
+          .map(fromMap)
+          .toList());
 
-  Future<void> removeAll() async =>
-      tracker.trackAsync('removeAll', () async => await _db.delete(_table));
+  Future<void> removeMany(List<int> ids) async => tracker.trackAsync(
+      'removeMany',
+      () async => await _db.delete(_table, where: 'id in (${ids.join(',')})'));
 }

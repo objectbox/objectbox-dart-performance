@@ -8,6 +8,7 @@ import 'model.dart';
 
 class Executor extends ExecutorBase {
   static final _boxName = 'TestEntity';
+
   /*late final*/
   Box<TestEntity> _box;
 
@@ -21,30 +22,30 @@ class Executor extends ExecutorBase {
 
   void close() => _box.close();
 
-  Future<void> _putMany(String fn, List<TestEntity> items) async =>
-      tracker.trackAsync(fn, () async {
+  Future<void> insertMany(List<TestEntity> items) async =>
+      tracker.trackAsync('insertMany', () async {
         int id = 1;
+        final itemsById = <int, TestEntity>{};
         items.forEach((TestEntity o) {
           o.id ??= id++;
+          itemsById[o.id] = o;
         });
-        final itemsById = Map<int, TestEntity>.fromIterable(items,
-            key: (o) => o.id, value: (o) => o);
         return await _box.putAll(itemsById);
       });
 
-  Future<void> putMany(List<TestEntity> items) async =>
-      _putMany('putMany', items);
+  Future<void> updateMany(List<TestEntity> items) async => tracker.trackAsync(
+      'updateMany',
+      () async => await _box.putAll(Map<int, TestEntity>.fromIterable(items,
+          key: (o) => o.id, value: (o) => o)));
 
-  Future<void> updateAll(List<TestEntity> items) async =>
-      _putMany('updateAll', items);
-
-  Future<List<TestEntity>> readAll() async {
-    // Make sure the data is actually read, not used from memory.
-    await _box.close();
-    _box = await Hive.openBox(_boxName);
-    return Future.value(tracker.track('readAll', () => _box.values.toList()));
+  Future<List<TestEntity>> readMany(List<int> ids) async {
+    return Future.value(tracker.track(
+        'readMany', () => ids.map((id) => _box.get(id)).toList()));
   }
 
-  Future<void> removeAll() async =>
-      tracker.track('removeAll', () => _box.clear());
+  Future<void> removeMany(List<int> ids) async =>
+      tracker.track('removeMany', () async {
+        await _box.deleteAll(ids);
+        await _box.compact();
+      });
 }
