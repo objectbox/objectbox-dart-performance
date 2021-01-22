@@ -6,17 +6,6 @@ import 'executor.dart';
 import 'time_tracker.dart';
 import 'model.dart';
 
-Map<String, dynamic> toMap(TestEntity object) => <String, dynamic>{
-      'id': object.id,
-      'tString': object.tString,
-      'tInt': object.tInt,
-      'tLong': object.tLong,
-      'tDouble': object.tDouble
-    };
-
-TestEntity fromMap(Map<String, dynamic> map) => TestEntity.full(
-    map['id'], map['tString'], map['tInt'], map['tLong'], map['tDouble']);
-
 class Executor extends ExecutorBase {
   final Database _db;
   static final _table = 'TestEntity';

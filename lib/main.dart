@@ -116,8 +116,10 @@ class _MyHomePageState extends State<MyHomePage> {
         return _runBenchmarkOn(_sqfExecutor);
       case 3:
         return _runBenchmarkOn(_hiveExecutor);
-      case 3:
+      case 4:
         return _runBenchmarkOn(_cfExecutor);
+      default:
+        throw Exception('Unknown executor');
     }
   }
 
@@ -190,6 +192,8 @@ class _MyHomePageState extends State<MyHomePage> {
                     DropdownMenuItem(
                       child: Text("Cloud Firestore"),
                       value: 4,
+                      // max batch size for firestore is 500
+                      onTap: () => _countController.text = '500',
                     ),
                   ],
                   onChanged: (value) {
