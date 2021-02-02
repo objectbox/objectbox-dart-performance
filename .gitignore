@@ -47,3 +47,5 @@ app.*.map.json
 **.mdb
 
 pubspec.lock
+
+android/app/google-services.json

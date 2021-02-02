@@ -27,3 +27,14 @@ class TestEntity {
 
   TestEntity.full(this.id, this.tString, this.tInt, this.tLong, this.tDouble);
 }
+
+Map<String, dynamic> toMap(TestEntity object) => <String, dynamic>{
+  'id': object.id,
+  'tString': object.tString,
+  'tInt': object.tInt,
+  'tLong': object.tLong,
+  'tDouble': object.tDouble
+};
+
+TestEntity fromMap(Map<String, dynamic> map) => TestEntity.full(
+    map['id'], map['tString'], map['tInt'], map['tLong'], map['tDouble']);

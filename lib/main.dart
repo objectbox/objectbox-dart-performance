@@ -8,6 +8,7 @@ import 'executor.dart';
 import 'obx_executor.dart' as obx;
 import 'sqf_executor.dart' as sqf;
 import 'hive_executor.dart' as hive;
+import 'cf_executor.dart' as cf;
 import 'time_tracker.dart';
 
 void main() {
@@ -68,6 +69,7 @@ class _MyHomePageState extends State<MyHomePage> {
   obx.Executor _obxExecutor;
   sqf.Executor _sqfExecutor;
   hive.Executor _hiveExecutor;
+  cf.Executor _cfExecutor;
 
   void _print(String str) {
     setState(() {
@@ -89,6 +91,8 @@ class _MyHomePageState extends State<MyHomePage> {
           Directory(path.join(dir.path, 'sqflite')), _tracker);
       _hiveExecutor = await hive.Executor.create(
           Directory(path.join(dir.path, 'hive')), _tracker);
+      _cfExecutor = await cf.Executor.create(
+          Directory(path.join(dir.path, 'cf')), _tracker);
     });
   }
 
@@ -112,6 +116,10 @@ class _MyHomePageState extends State<MyHomePage> {
         return _runBenchmarkOn(_sqfExecutor);
       case 3:
         return _runBenchmarkOn(_hiveExecutor);
+      case 4:
+        return _runBenchmarkOn(_cfExecutor);
+      default:
+        throw Exception('Unknown executor');
     }
   }
 
@@ -180,6 +188,12 @@ class _MyHomePageState extends State<MyHomePage> {
                     DropdownMenuItem(
                       child: Text("Hive"),
                       value: 3,
+                    ),
+                    DropdownMenuItem(
+                      child: Text("Cloud Firestore"),
+                      value: 4,
+                      // max batch size for firestore is 500
+                      onTap: () => _countController.text = '500',
                     ),
                   ],
                   onChanged: (value) {
