@@ -10,7 +10,7 @@ class Executor extends ExecutorBase {
   static final _boxName = 'TestEntity';
 
   /*late final*/
-  Box<TestEntity> _box;
+  LazyBox<TestEntity> _box;
 
   Executor._(this._box, TimeTracker tracker) : super(tracker);
 
@@ -19,7 +19,7 @@ class Executor extends ExecutorBase {
     if (!Hive.isAdapterRegistered(TestEntityAdapter().typeId)) {
       Hive.registerAdapter(TestEntityAdapter());
     }
-    return Executor._(await Hive.openBox(_boxName), tracker);
+    return Executor._(await Hive.openLazyBox(_boxName), tracker);
   }
 
   void close() => _box.close();
@@ -41,8 +41,8 @@ class Executor extends ExecutorBase {
           key: (o) => o.id, value: (o) => o)));
 
   Future<List<TestEntity>> readMany(List<int> ids) async {
-    return Future.value(
-        tracker.track('readMany', () => ids.map(_box.get).toList()));
+    return tracker.trackAsync(
+        'readMany', () => Future.wait(ids.map(_box.get).toList()));
   }
 
   Future<void> removeMany(List<int> ids) async =>

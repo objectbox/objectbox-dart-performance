@@ -8,6 +8,7 @@ import 'executor.dart';
 import 'obx_executor.dart' as obx;
 import 'sqf_executor.dart' as sqf;
 import 'hive_executor.dart' as hive;
+import 'hive_lazy_executor.dart' as hive_lazy;
 import 'cf_executor.dart' as cf;
 import 'time_tracker.dart';
 
@@ -69,6 +70,7 @@ class _MyHomePageState extends State<MyHomePage> {
   obx.Executor _obxExecutor;
   sqf.Executor _sqfExecutor;
   hive.Executor _hiveExecutor;
+  hive_lazy.Executor _hiveLazyExecutor;
   cf.Executor _cfExecutor;
 
   void _print(String str) {
@@ -91,6 +93,8 @@ class _MyHomePageState extends State<MyHomePage> {
           Directory(path.join(dir.path, 'sqflite')), _tracker);
       _hiveExecutor = await hive.Executor.create(
           Directory(path.join(dir.path, 'hive')), _tracker);
+      _hiveLazyExecutor = await hive_lazy.Executor.create(
+          Directory(path.join(dir.path, 'hive_lazy')), _tracker);
       _cfExecutor = await cf.Executor.create(
           Directory(path.join(dir.path, 'cf')), _tracker);
     });
@@ -101,6 +105,8 @@ class _MyHomePageState extends State<MyHomePage> {
     _obxExecutor?.close();
     _sqfExecutor?.close();
     _hiveExecutor?.close();
+    _hiveLazyExecutor?.close();
+    _cfExecutor?.close();
     super.dispose();
   }
 
@@ -117,6 +123,8 @@ class _MyHomePageState extends State<MyHomePage> {
       case 3:
         return _runBenchmarkOn(_hiveExecutor);
       case 4:
+        return _runBenchmarkOn(_hiveLazyExecutor);
+      case 5:
         return _runBenchmarkOn(_cfExecutor);
       default:
         throw Exception('Unknown executor');
@@ -190,8 +198,12 @@ class _MyHomePageState extends State<MyHomePage> {
                       value: 3,
                     ),
                     DropdownMenuItem(
-                      child: Text("Cloud Firestore"),
+                      child: Text("Hive Lazy"),
                       value: 4,
+                    ),
+                    DropdownMenuItem(
+                      child: Text("Cloud Firestore"),
+                      value: 5,
                       // max batch size for firestore is 500
                       onTap: () => _countController.text = '500',
                     ),
