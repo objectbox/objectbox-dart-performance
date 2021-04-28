@@ -57,7 +57,7 @@ class Executor extends ExecutorBase {
       });
 
   Future<List<TestEntity>> readMany(List<int> ids) =>
-      tracker.trackAsync('readMany',
+      tracker.track('readMany',
           // doesn't work, filters support a maximum of 10 elements
           // () async => (await _box.where('id', whereIn: ids).get())
           //     .docs

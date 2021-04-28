@@ -14,7 +14,14 @@ class TimeTracker {
     _times[fnName]!.add(watch.elapsed);
   }
 
+  // whether the function is `async`
+  bool _isAsync(dynamic Function() fn) => fn is Future Function();
+
   R track<R>(String fnName, R Function() fn) {
+    if (_isAsync(fn)) {
+      throw UnsupportedError("Use trackAsync() to track async functions.");
+    }
+
     final watch = Stopwatch();
 
     watch.start();
@@ -24,6 +31,10 @@ class TimeTracker {
   }
 
   Future<R> trackAsync<R>(String fnName, Future<R> Function() fn) async {
+    if (!_isAsync(fn)) {
+      throw UnsupportedError("Use track() to track synchronous functions.");
+    }
+
     final watch = Stopwatch();
 
     watch.start();

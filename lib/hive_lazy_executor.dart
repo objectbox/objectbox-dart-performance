@@ -44,7 +44,7 @@ class Executor extends ExecutorBase {
   }
 
   Future<void> removeMany(List<int> ids) async =>
-      tracker.track('removeMany', () async {
+      tracker.trackAsync('removeMany', () async {
         await _box.deleteAll(ids);
         await _box.compact();
       });
