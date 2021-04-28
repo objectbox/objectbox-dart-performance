@@ -44,7 +44,7 @@ class MyApp extends StatelessWidget {
 }
 
 class MyHomePage extends StatefulWidget {
-  MyHomePage({Key key, this.title}) : super(key: key);
+  MyHomePage({Key? key, required this.title}) : super(key: key);
 
   // This widget is the home page of your application. It is stateful, meaning
   // that it has a State object (defined below) that contains fields that affect
@@ -66,12 +66,12 @@ class _MyHomePageState extends State<MyHomePage> {
   final _countController = TextEditingController(text: '10000');
   final _runsController = TextEditingController(text: '10');
   var _result = 'not executed yet';
-  TimeTracker _tracker;
-  obx.Executor _obxExecutor;
-  sqf.Executor _sqfExecutor;
-  hive.Executor _hiveExecutor;
-  hive_lazy.Executor _hiveLazyExecutor;
-  cf.Executor _cfExecutor;
+  late final TimeTracker _tracker = TimeTracker(outputFn: _print);
+  obx.Executor? _obxExecutor;
+  sqf.Executor? _sqfExecutor;
+  hive.Executor? _hiveExecutor;
+  hive_lazy.Executor? _hiveLazyExecutor;
+  cf.Executor? _cfExecutor;
 
   void _print(String str) {
     setState(() {
@@ -84,7 +84,6 @@ class _MyHomePageState extends State<MyHomePage> {
     super.initState();
 
     getApplicationDocumentsDirectory().then((Directory dir) async {
-      _tracker = TimeTracker(outputFn: _print);
       if (dir.existsSync()) dir.deleteSync(recursive: true);
       dir.createSync();
       _obxExecutor =
@@ -117,15 +116,15 @@ class _MyHomePageState extends State<MyHomePage> {
 
     switch (_db) {
       case 1:
-        return _runBenchmarkOn(_obxExecutor);
+        return _runBenchmarkOn(_obxExecutor!);
       case 2:
-        return _runBenchmarkOn(_sqfExecutor);
+        return _runBenchmarkOn(_sqfExecutor!);
       case 3:
-        return _runBenchmarkOn(_hiveExecutor);
+        return _runBenchmarkOn(_hiveExecutor!);
       case 4:
-        return _runBenchmarkOn(_hiveLazyExecutor);
+        return _runBenchmarkOn(_hiveLazyExecutor!);
       case 5:
-        return _runBenchmarkOn(_cfExecutor);
+        return _runBenchmarkOn(_cfExecutor!);
       default:
         throw Exception('Unknown executor');
     }
@@ -139,7 +138,8 @@ class _MyHomePageState extends State<MyHomePage> {
     for (var i = 0; i < runs; i++) {
       await bench.insertMany(inserts);
       final ids = inserts.map((e) => e.id).toList(growable: false);
-      final items = await bench.readMany(ids);
+      final itemsOptional = await bench.readMany(ids);
+      final items = itemsOptional.map((e) => e!).toList(growable: false);
       bench.changeValues(items);
       await bench.updateMany(items);
       await bench.removeMany(ids);
@@ -210,7 +210,7 @@ class _MyHomePageState extends State<MyHomePage> {
                   ],
                   onChanged: (value) {
                     setState(() {
-                      _db = value;
+                      _db = value as int;
                     });
                   }),
               Spacer(),

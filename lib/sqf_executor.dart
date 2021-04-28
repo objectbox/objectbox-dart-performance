@@ -34,7 +34,7 @@ create table $_table (
         items.forEach((object) => tx.insert(_table, toMap(object)));
         final ids = await tx.commit();
         for (int i = 0; i < ids.length; i++) {
-          items[i].id = ids[i];
+          items[i].id = ids[i] as int;
         }
       });
 
@@ -46,7 +46,7 @@ create table $_table (
         await tx.commit();
       });
 
-  Future<List<TestEntity>> readMany(List<int> ids) => tracker.trackAsync(
+  Future<List<TestEntity?>> readMany(List<int> ids) => tracker.trackAsync(
       'readMany',
       () async => (await _db.query(_table, where: 'id in (${ids.join(',')})'))
           .map(fromMap)

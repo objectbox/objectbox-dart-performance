@@ -1,8 +1,6 @@
 import 'dart:io';
 
 import 'package:args/args.dart';
-import 'package:glob/glob.dart';
-
 import 'package:benchapp/obx_executor.dart';
 import 'package:benchapp/time_tracker.dart';
 
@@ -27,11 +25,8 @@ void main(List<String> arguments) async {
   print('running $runs times with $count objects in $dbDir');
 
   if (dbDir.existsSync()) {
-    print('deleting existing DB files in $dbDir');
-    final dbFilesGlob = Glob(dbDir.path + '/*.mdb');
-    for (var dbFile in dbFilesGlob.listSync()) {
-      dbFile.deleteSync();
-    }
+    print('deleting existing DB directory $dbDir');
+    dbDir.deleteSync(recursive: true);
   }
 
   final tracker = TimeTracker();
@@ -44,7 +39,7 @@ void main(List<String> arguments) async {
     final ids = inserts.map((e) => e.id).toList(growable: false);
     final items = await bench.readMany(ids);
     bench.changeValues(items);
-    bench.updateMany(items);
+    bench.updateMany(items.map((e) => e!).toList(growable: false));
     bench.removeMany(ids);
 
     print('${i + 1}/$runs finished');

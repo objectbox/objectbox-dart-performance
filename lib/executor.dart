@@ -11,19 +11,19 @@ abstract class ExecutorBase {
   List<TestEntity> prepareData(int count) {
     final result = <TestEntity>[];
     for (var i = 0; i < count; i++) {
-      result.add(TestEntity.full(null, 'Entity #$i', i, i, i.toDouble()));
+      result.add(TestEntity(0, 'Entity #$i', i, i, i.toDouble()));
     }
     return result.toList(growable: false);
   }
 
-  void changeValues(List<TestEntity> items) =>
-      items.forEach((item) => item.tLong *= 2);
+  void changeValues(List<TestEntity?> items) =>
+      items.forEach((item) => item!.tLong *= 2);
 
   Future<void> insertMany(List<TestEntity> items);
 
   Future<void> updateMany(List<TestEntity> items);
 
-  Future<List<TestEntity>> readMany(List<int> ids);
+  Future<List<TestEntity?>> readMany(List<int> ids);
 
   Future<void> removeMany(List<int> ids);
 }

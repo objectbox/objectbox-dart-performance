@@ -10,7 +10,7 @@ import 'model.dart';
 class Executor extends ExecutorBase {
   static final _boxName = 'TestEntity';
   final FirebaseFirestore _store;
-  CollectionReference _box;
+  late final CollectionReference _box;
 
   Executor._(this._store, TimeTracker tracker) : super(tracker) {
     _box = _store.collection(_boxName);
@@ -41,7 +41,7 @@ class Executor extends ExecutorBase {
         final batch = _store.batch();
         int id = 1;
         items.forEach((TestEntity o) {
-          o.id ??= id++;
+          if (o.id == 0) o.id = id++;
           batch.set(_box.doc(o.id.toString()), toMap(o));
         });
         await batch.commit();

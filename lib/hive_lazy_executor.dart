@@ -8,9 +8,7 @@ import 'model.dart';
 
 class Executor extends ExecutorBase {
   static final _boxName = 'TestEntity';
-
-  /*late final*/
-  LazyBox<TestEntity> _box;
+  late final LazyBox<TestEntity> _box;
 
   Executor._(this._box, TimeTracker tracker) : super(tracker);
 
@@ -29,7 +27,7 @@ class Executor extends ExecutorBase {
         int id = 1;
         final itemsById = <int, TestEntity>{};
         items.forEach((TestEntity o) {
-          o.id ??= id++;
+          if (o.id == 0) o.id = id++;
           itemsById[o.id] = o;
         });
         return await _box.putAll(itemsById);
@@ -40,7 +38,7 @@ class Executor extends ExecutorBase {
       () async => await _box.putAll(Map<int, TestEntity>.fromIterable(items,
           key: (o) => o.id, value: (o) => o)));
 
-  Future<List<TestEntity>> readMany(List<int> ids) async {
+  Future<List<TestEntity?>> readMany(List<int> ids) async {
     return tracker.trackAsync(
         'readMany', () => Future.wait(ids.map(_box.get).toList()));
   }

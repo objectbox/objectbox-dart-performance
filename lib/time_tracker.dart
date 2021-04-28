@@ -11,7 +11,7 @@ class TimeTracker {
     watch.stop();
 
     _times[fnName] ??= <Duration>[];
-    _times[fnName].add(watch.elapsed);
+    _times[fnName]!.add(watch.elapsed);
   }
 
   R track<R>(String fnName, R Function() fn) {
@@ -34,7 +34,7 @@ class TimeTracker {
 
   void _print(List<dynamic> varArgs) => _outputFn(varArgs.join('\t'));
 
-  void printTimes({List<String> functions, bool avgOnly = false}) {
+  void printTimes({List<String>? functions, bool avgOnly = false}) {
     functions ??= _times.keys.toList();
 
     // print the data as tab-separated a table
@@ -48,16 +48,16 @@ class TimeTracker {
         _print([fn, avg]);
       } else {
         final timesCols =
-            _times[fn].map((d) => d.inMicroseconds.toDouble() / 1000);
+            _times[fn]!.map((d) => d.inMicroseconds.toDouble() / 1000);
         _print([fn, _count(fn), avg, ...timesCols]);
       }
     }
   }
 
-  int _count(String fn) => _times[fn].length;
+  int _count(String fn) => _times[fn]!.length;
 
   int _sum(String fn) =>
-      _times[fn].map((d) => d.inMicroseconds).reduce((v, e) => v + e);
+      _times[fn]!.map((d) => d.inMicroseconds).reduce((v, e) => v + e);
 
   double averageMs(String fn) =>
       _sum(fn).toDouble() / _count(fn).toDouble() / 1000;
