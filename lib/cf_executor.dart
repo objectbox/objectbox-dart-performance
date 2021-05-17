@@ -34,7 +34,7 @@ class Executor extends ExecutorBase {
     return Executor._(store, tracker);
   }
 
-  void close() => _store.terminate();
+  Future<void> close() => _store.terminate();
 
   Future<void> insertMany(List<TestEntity> items) =>
       tracker.trackAsync('insertMany', () async {

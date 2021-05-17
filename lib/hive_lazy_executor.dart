@@ -20,7 +20,7 @@ class Executor extends ExecutorBase {
         await Hive.openLazyBox(_boxName, path: dbDir.path), tracker);
   }
 
-  void close() => _box.close();
+  Future<void> close() => _box.close();
 
   Future<void> insertMany(List<TestEntity> items) async =>
       tracker.trackAsync('insertMany', () async {
@@ -38,10 +38,8 @@ class Executor extends ExecutorBase {
       () async => await _box.putAll(Map<int, TestEntity>.fromIterable(items,
           key: (o) => o.id, value: (o) => o)));
 
-  Future<List<TestEntity?>> readMany(List<int> ids) async {
-    return tracker.trackAsync(
-        'readMany', () => Future.wait(ids.map(_box.get).toList()));
-  }
+  Future<List<TestEntity?>> readMany(List<int> ids) => tracker.trackAsync(
+      'readMany', () => Future.wait(ids.map(_box.get).toList()));
 
   Future<void> removeMany(List<int> ids) async =>
       tracker.trackAsync('removeMany', () async {

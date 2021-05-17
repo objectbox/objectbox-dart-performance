@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:path/path.dart' as path;
@@ -67,11 +68,7 @@ class _MyHomePageState extends State<MyHomePage> {
   final _runsController = TextEditingController(text: '10');
   var _result = 'not executed yet';
   late final TimeTracker _tracker = TimeTracker(outputFn: _print);
-  obx.Executor? _obxExecutor;
-  sqf.Executor? _sqfExecutor;
-  hive.Executor? _hiveExecutor;
-  hive_lazy.Executor? _hiveLazyExecutor;
-  cf.Executor? _cfExecutor;
+  final appDir = Completer<Directory>();
 
   void _print(String str) {
     setState(() {
@@ -82,31 +79,7 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   void initState() {
     super.initState();
-
-    getApplicationDocumentsDirectory().then((Directory dir) async {
-      if (dir.existsSync()) dir.deleteSync(recursive: true);
-      dir.createSync();
-      _obxExecutor =
-          obx.Executor(Directory(path.join(dir.path, 'objectbox')), _tracker);
-      _sqfExecutor = await sqf.Executor.create(
-          Directory(path.join(dir.path, 'sqflite')), _tracker);
-      _hiveExecutor = await hive.Executor.create(
-          Directory(path.join(dir.path, 'hive')), _tracker);
-      _hiveLazyExecutor = await hive_lazy.Executor.create(
-          Directory(path.join(dir.path, 'hive_lazy')), _tracker);
-      _cfExecutor = await cf.Executor.create(
-          Directory(path.join(dir.path, 'cf')), _tracker);
-    });
-  }
-
-  @override
-  void dispose() {
-    _obxExecutor?.close();
-    _sqfExecutor?.close();
-    _hiveExecutor?.close();
-    _hiveLazyExecutor?.close();
-    _cfExecutor?.close();
-    super.dispose();
+    getApplicationDocumentsDirectory().then(appDir.complete);
   }
 
   void _runBenchmark() async {
@@ -114,25 +87,55 @@ class _MyHomePageState extends State<MyHomePage> {
       _result = 'Benchmark starting...';
     });
 
-    switch (_db) {
-      case 1:
-        return _runBenchmarkOn(_obxExecutor!);
-      case 2:
-        return _runBenchmarkOn(_sqfExecutor!);
-      case 3:
-        return _runBenchmarkOn(_hiveExecutor!);
-      case 4:
-        return _runBenchmarkOn(_hiveLazyExecutor!);
-      case 5:
-        return _runBenchmarkOn(_cfExecutor!);
-      default:
-        throw Exception('Unknown executor');
+    final dbDir = (await appDir.future).createTempSync();
+    print('Using temporary DB directory $dbDir');
+    dbDir.createSync(recursive: true);
+
+    ExecutorBase? executor;
+    try {
+      switch (_db) {
+        case 1:
+          executor = obx.Executor(dbDir, _tracker);
+          break;
+        case 2:
+          executor = await sqf.Executor.create(
+              Directory(path.join(dbDir.path, 'bench.db')), _tracker);
+          break;
+        case 3:
+          executor = await hive.Executor.create(dbDir, _tracker);
+          break;
+        case 4:
+          executor = await hive_lazy.Executor.create(dbDir, _tracker);
+          break;
+        case 5:
+          executor = await cf.Executor.create(dbDir, _tracker);
+          break;
+        default:
+          throw Exception('Unknown executor');
+      }
+
+      await _runBenchmarkOn(executor);
+    } finally {
+      await executor?.close();
+      if (dbDir.existsSync()) dbDir.deleteSync(recursive: true);
     }
   }
 
-  void _runBenchmarkOn(ExecutorBase bench) async {
+  Future<void> _runBenchmarkOn(ExecutorBase bench) async {
+    final count = int.parse(_countController.value.text);
+    final inserts = bench.prepareData(count);
+
+    // Before we start to benchmark: verify the executor works as expected.
+    try {
+      await testExecutor(bench, count: count);
+    } catch (e) {
+      setState(() {
+        _result = "Executor test failed: $e";
+      });
+      return;
+    }
+
     _tracker.clear();
-    final inserts = bench.prepareData(int.parse(_countController.value.text));
     final runs = int.parse(_runsController.value.text);
 
     for (var i = 0; i < runs; i++) {
@@ -157,6 +160,16 @@ class _MyHomePageState extends State<MyHomePage> {
       'updateMany',
       'removeMany',
     ]);
+
+    // Sanity check after the benchmark: subsequent runs must have same results.
+    try {
+      await testExecutor(bench, count: count);
+    } catch (e) {
+      setState(() {
+        _result = "Executor test failed: $e";
+      });
+      return;
+    }
   }
 
   @override
@@ -197,16 +210,17 @@ class _MyHomePageState extends State<MyHomePage> {
                       child: Text("Hive"),
                       value: 3,
                     ),
-                    DropdownMenuItem(
-                      child: Text("Hive Lazy"),
-                      value: 4,
-                    ),
-                    DropdownMenuItem(
-                      child: Text("Cloud Firestore"),
-                      value: 5,
-                      // max batch size for firestore is 500
-                      onTap: () => _countController.text = '500',
-                    ),
+                    // These are currently not fully implemented:
+                    // DropdownMenuItem(
+                    //   child: Text("Hive Lazy"),
+                    //   value: 4,
+                    // ),
+                    // DropdownMenuItem(
+                    //   child: Text("Cloud Firestore"),
+                    //   value: 5,
+                    //   // max batch size for firestore is 500
+                    //   onTap: () => _countController.text = '500',
+                    // ),
                   ],
                   onChanged: (value) {
                     setState(() {

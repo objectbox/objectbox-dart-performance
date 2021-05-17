@@ -17,7 +17,7 @@ class Executor extends ExecutorBase {
     box = Box<TestEntity>(store);
   }
 
-  void close() => store.close();
+  Future<void> close() async => store.close();
 
   Future<void> insertMany(List<TestEntity> items) =>
       Future.value(tracker.track('insertMany', () => box.putMany(items)));
