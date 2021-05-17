@@ -13,7 +13,7 @@ flutter:
 dependencies:
   flutter:
     sdk: flutter
-  objectbox: ^0.14.0
+  objectbox: ^0.15.0
   objectbox_flutter_libs: any
   path_provider: ^2.0.1
   sqflite: ^2.0.0+3
@@ -21,12 +21,13 @@ dependencies:
   cupertino_icons: ^1.0.2
   hive: ^2.0.4
   firebase_core: ^1.1.0
-  cloud_firestore: ^1.0.7
+  cloud_firestore: ^2.1.0
 
 dev_dependencies:
   objectbox_generator: any
   build_runner: any
   hive_generator: any
+
 #dependency_overrides:
 #  objectbox:
 #    path: ../objectbox-dart/objectbox

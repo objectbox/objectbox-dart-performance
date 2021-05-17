@@ -10,7 +10,7 @@ import 'model.dart';
 class Executor extends ExecutorBase {
   static final _boxName = 'TestEntity';
   final FirebaseFirestore _store;
-  late final CollectionReference _box;
+  late final CollectionReference<Map<String, dynamic>> _box;
 
   Executor._(this._store, TimeTracker tracker) : super(tracker) {
     _box = _store.collection(_boxName);
@@ -56,8 +56,7 @@ class Executor extends ExecutorBase {
         await batch.commit();
       });
 
-  Future<List<TestEntity>> readMany(List<int> ids) =>
-      tracker.track('readMany',
+  Future<List<TestEntity>> readMany(List<int> ids) => tracker.track('readMany',
           // doesn't work, filters support a maximum of 10 elements
           // () async => (await _box.where('id', whereIn: ids).get())
           //     .docs
