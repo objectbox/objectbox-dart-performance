@@ -9,6 +9,7 @@ import 'package:benchapp/time_tracker.dart';
 
 class Executor extends ExecutorBase {
   final Isar _box;
+  Isar get _boxIndexed => _box;
 
   Executor._(this._box, TimeTracker tracker) : super(tracker);
 
@@ -33,6 +34,21 @@ class Executor extends ExecutorBase {
         ),
       );
 
+  Future<void> insertManyIndexed(List<TestEntityIndexed> items) => Future.value(
+        tracker.track(
+          'insertManyIndexed',
+          () {
+            for (int i = 0; i < items.length; i++) {
+              items[i].id = i;
+            }
+
+            return _box.writeTxnSync(
+              (isar) => isar.testEntityIndexeds.putAllSync(items),
+            );
+          },
+        ),
+      );
+
   Future<void> updateMany(List<TestEntity> items) => Future.value(tracker.track(
       'updateMany',
       () => _box.writeTxnSync((isar) => isar.testEntitys.putAllSync(items))));
@@ -45,5 +61,14 @@ class Executor extends ExecutorBase {
             'removeMany',
             () => _box.writeTxnSync(
                 (Isar isar) => isar.testEntitys.deleteAllSync(ids))),
+      );
+
+  Future<List<TestEntityIndexed>> queryStringEquals(String val) async =>
+      tracker.trackAsync(
+        'queryStringEquals',
+        () => _boxIndexed.testEntityIndexeds
+            .where()
+            .tStringEqualTo(val)
+            .findAll(),
       );
 }

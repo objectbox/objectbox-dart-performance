@@ -1,6 +1,5 @@
 import 'dart:io';
 
-import 'package:benchapp/objectbox.g.dart';
 import 'package:sqflite/sqflite.dart';
 
 import 'executor.dart';

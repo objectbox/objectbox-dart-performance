@@ -50,17 +50,23 @@ class TestEntity {
 }
 
 // A separate entity for queried data so that indexes don't change CRUD results.
+@isar.Collection()
 @Entity()
 @HiveType(typeId: 2)
 class TestEntityIndexed {
   @HiveField(0)
   int id;
 
+  @isar.Index()
   @Index()
   @HiveField(1)
   String tString;
 
   TestEntityIndexed(this.id, this.tString);
+
+  TestEntityIndexed.forIsar()
+      : id = 0,
+        tString = '';
 
   static Map<String, dynamic> toMap(TestEntityIndexed object) =>
       <String, dynamic>{
