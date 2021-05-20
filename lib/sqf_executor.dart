@@ -32,7 +32,7 @@ class Executor extends ExecutorBase {
   Future<void> insertMany(List<TestEntity> items) async =>
       tracker.trackAsync('insertMany', () async {
         final tx = _db.batch();
-        items.forEach((object) => tx.insert(_table, toMap(object)));
+        items.forEach((object) => tx.insert(_table, TestEntity.toMap(object)));
         final ids = await tx.commit();
         for (int i = 0; i < ids.length; i++) {
           items[i].id = ids[i] as int;
@@ -42,7 +42,7 @@ class Executor extends ExecutorBase {
   Future<void> updateMany(List<TestEntity> items) async =>
       tracker.trackAsync('updateMany', () async {
         final tx = _db.batch();
-        items.forEach((object) => tx.update(_table, toMap(object),
+        items.forEach((object) => tx.update(_table, TestEntity.toMap(object),
             where: 'id = ?', whereArgs: [object.id]));
         await tx.commit();
       });
@@ -50,7 +50,7 @@ class Executor extends ExecutorBase {
   Future<List<TestEntity>> _query(String where,
           [List<Object?>? whereArgs]) async =>
       (await _db.query(_table, where: where, whereArgs: whereArgs))
-          .map(fromMap)
+          .map(TestEntity.fromMap)
           .toList();
 
   Future<List<TestEntity?>> readMany(List<int> ids) => tracker.trackAsync(

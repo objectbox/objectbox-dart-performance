@@ -42,7 +42,7 @@ class Executor extends ExecutorBase {
         int id = 1;
         items.forEach((TestEntity o) {
           if (o.id == 0) o.id = id++;
-          batch.set(_box.doc(o.id.toString()), toMap(o));
+          batch.set(_box.doc(o.id.toString()), TestEntity.toMap(o));
         });
         await batch.commit();
       });
@@ -51,7 +51,7 @@ class Executor extends ExecutorBase {
       tracker.trackAsync('updateMany', () async {
         final batch = _store.batch();
         items.forEach((TestEntity o) {
-          batch.set(_box.doc(o.id.toString()), toMap(o));
+          batch.set(_box.doc(o.id.toString()), TestEntity.toMap(o));
         });
         await batch.commit();
       });
@@ -74,7 +74,7 @@ class Executor extends ExecutorBase {
         return (await _box.get())
             .docs
             .where((snapshot) => idsSet.contains(snapshot.id))
-            .map((snapshot) => fromMap(snapshot.data()))
+            .map((snapshot) => TestEntity.fromMap(snapshot.data()))
             .toList(growable: false);
       });
 
