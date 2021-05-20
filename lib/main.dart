@@ -11,6 +11,7 @@ import 'sqf_executor.dart' as sqf;
 import 'hive_executor.dart' as hive;
 import 'hive_lazy_executor.dart' as hive_lazy;
 import 'cf_executor.dart' as cf;
+import 'isar_sync_executor.dart' as isar_sync;
 import 'time_tracker.dart';
 
 void main() {
@@ -109,6 +110,9 @@ class _MyHomePageState extends State<MyHomePage> {
           break;
         case 5:
           executor = await cf.Executor.create(dbDir, _tracker);
+          break;
+        case 6:
+          executor = await isar_sync.Executor.create(dbDir, _tracker);
           break;
         default:
           throw Exception('Unknown executor');
@@ -228,6 +232,10 @@ class _MyHomePageState extends State<MyHomePage> {
                     //   // max batch size for firestore is 500
                     //   onTap: () => _countController.text = '500',
                     // ),
+                    DropdownMenuItem(
+                      child: Text("Isar Sync"),
+                      value: 6,
+                    ),
                   ],
                   onChanged: (value) {
                     setState(() {

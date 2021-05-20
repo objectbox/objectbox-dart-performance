@@ -1,8 +1,10 @@
 import 'package:objectbox/objectbox.dart';
 import 'package:hive/hive.dart';
+import 'package:isar/isar.dart' as isar;
 
 part 'model.g.dart';
 
+@isar.Collection()
 @Entity()
 @HiveType(typeId: 1)
 class TestEntity {
@@ -23,6 +25,13 @@ class TestEntity {
   double tDouble;
 
   TestEntity(this.id, this.tString, this.tInt, this.tLong, this.tDouble);
+
+  TestEntity.forIsar()
+      : id = 0,
+        tString = '',
+        tInt = 0,
+        tLong = 0,
+        tDouble = 0;
 
   static Map<String, dynamic> toMap(TestEntity object) => <String, dynamic>{
         'id': object.id == 0 ? null : object.id,

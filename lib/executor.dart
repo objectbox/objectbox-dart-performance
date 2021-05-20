@@ -38,7 +38,7 @@ abstract class ExecutorBase {
       throw UnimplementedError();
 }
 
-/// Verifies that the given executor works as expectd (returns proper results).
+/// Verifies that the given executor works as expected (returns proper results).
 Future<void> testExecutor(ExecutorBase bench,
         {required int count, String? qString}) =>
     Future.sync(() async {
