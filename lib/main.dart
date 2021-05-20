@@ -125,9 +125,13 @@ class _MyHomePageState extends State<MyHomePage> {
     final count = int.parse(_countController.value.text);
     final inserts = bench.prepareData(count);
 
+    // query is executed on a database with 10 times the given number of objects
+    final insertsIndexed = bench.prepareDataIndexed(count * 10);
+    final qStringValue = insertsIndexed[count * 5].tString;
+
     // Before we start to benchmark: verify the executor works as expected.
     try {
-      await testExecutor(bench, count: count);
+      await testExecutor(bench, count: count, qString: qStringValue);
     } catch (e) {
       setState(() {
         _result = "Executor test failed: $e";
@@ -138,6 +142,7 @@ class _MyHomePageState extends State<MyHomePage> {
     _tracker.clear();
     final runs = int.parse(_runsController.value.text);
 
+    await bench.insertManyIndexed(insertsIndexed);
     for (var i = 0; i < runs; i++) {
       await bench.insertMany(inserts);
       final ids = inserts.map((e) => e.id).toList(growable: false);
@@ -146,6 +151,7 @@ class _MyHomePageState extends State<MyHomePage> {
       bench.changeValues(items);
       await bench.updateMany(items);
       await bench.removeMany(ids);
+      await bench.queryStringEquals(qStringValue);
 
       setState(() {
         _result = '${i + 1}/$runs finished';
@@ -159,11 +165,12 @@ class _MyHomePageState extends State<MyHomePage> {
       'readMany',
       'updateMany',
       'removeMany',
+      'queryStringEquals',
     ]);
 
     // Sanity check after the benchmark: subsequent runs must have same results.
     try {
-      await testExecutor(bench, count: count);
+      await testExecutor(bench, count: count, qString: null);
     } catch (e) {
       setState(() {
         _result = "Executor test failed: $e";

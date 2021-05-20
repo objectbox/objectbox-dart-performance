@@ -36,10 +36,31 @@
         }
       ],
       "relations": []
+    },
+    {
+      "id": "2:5453298016524400943",
+      "lastPropertyId": "2:6936912195487802902",
+      "name": "TestEntityIndexed",
+      "properties": [
+        {
+          "id": "1:6045856831974807584",
+          "name": "id",
+          "type": 6,
+          "flags": 1
+        },
+        {
+          "id": "2:6936912195487802902",
+          "name": "tString",
+          "type": 9,
+          "flags": 2048,
+          "indexId": "1:3627912493679987388"
+        }
+      ],
+      "relations": []
     }
   ],
-  "lastEntityId": "1:1824294286181366916",
-  "lastIndexId": "0:0",
+  "lastEntityId": "2:5453298016524400943",
+  "lastIndexId": "1:3627912493679987388",
   "lastRelationId": "0:0",
   "lastSequenceId": "0:0",
   "modelVersion": 5,

@@ -7,7 +7,6 @@ import 'time_tracker.dart';
 import 'model.dart';
 
 class Executor extends ExecutorBase {
-  static final _boxName = 'TestEntity';
   late final LazyBox<TestEntity> _box;
 
   Executor._(this._box, TimeTracker tracker) : super(tracker);
@@ -17,7 +16,7 @@ class Executor extends ExecutorBase {
       Hive.registerAdapter(TestEntityAdapter());
     }
     return Executor._(
-        await Hive.openLazyBox(_boxName, path: dbDir.path), tracker);
+        await Hive.openLazyBox('TestEntity', path: dbDir.path), tracker);
   }
 
   Future<void> close() => _box.close();
@@ -46,4 +45,9 @@ class Executor extends ExecutorBase {
         await _box.deleteAll(ids);
         await _box.compact();
       });
+
+  // not supported - there's no iterator
+  Future<List<TestEntityIndexed>> queryStringEquals(String val) =>
+      tracker.track('queryStringEquals',
+          () => Future.error('Hive does not support queries on lazy boxes'));
 }
