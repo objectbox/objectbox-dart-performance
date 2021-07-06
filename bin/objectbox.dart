@@ -38,7 +38,7 @@ void main(List<String> arguments) async {
     bench.insertMany(inserts);
     final ids = inserts.map((e) => e.id).toList(growable: false);
     final items = await bench.readMany(ids);
-    bench.changeValues(items);
+    bench.changeValues(bench.allNotNull(items));
     bench.updateMany(items.map((e) => e!).toList(growable: false));
     bench.removeMany(ids);
 

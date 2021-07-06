@@ -1,7 +1,7 @@
 import 'time_tracker.dart';
 import 'model.dart';
 
-abstract class ExecutorBase {
+abstract class ExecutorBase<T extends TestEntity> {
   static const caseSensitive = true;
 
   final TimeTracker _tracker;
@@ -12,65 +12,54 @@ abstract class ExecutorBase {
 
   Future<void> close();
 
-  List<TestEntity> prepareData(int count) => List.generate(
-      count, (i) => TestEntity(0, 'Entity #$i', i, i, i.toDouble()),
+  List<T> prepareData(int count) => List.generate(
+      count,
+      (i) => T == TestEntityPlain
+          ? TestEntityPlain(0, 'Entity #$i', i, i, i.toDouble()) as T
+          : TestEntityIndexed(0, 'Entity #$i', i, i, i.toDouble()) as T,
       growable: false);
 
-  List<TestEntityIndexed> prepareDataIndexed(int count) =>
-      List.generate(count, (i) => TestEntityIndexed(0, 'Entity #$i'),
-          growable: false);
+  void changeValues(List<T> items) => items.forEach((item) => item.tLong *= 2);
 
-  void changeValues(List<TestEntity?> items) =>
-      items.forEach((item) => item!.tLong *= 2);
+  List<T> allNotNull(List<T?> items) =>
+      items.map((e) => e!).toList(growable: false);
 
-  Future<void> insertMany(List<TestEntity> items);
+  Future<void> insertMany(List<T> items);
 
-  Future<void> insertManyIndexed(List<TestEntityIndexed> items) =>
-      throw UnimplementedError();
+  Future<void> updateMany(List<T> items);
 
-  Future<void> updateMany(List<TestEntity> items);
-
-  Future<List<TestEntity?>> readMany(List<int> ids);
+  Future<List<T?>> readMany(List<int> ids);
 
   Future<void> removeMany(List<int> ids);
 
-  Future<List<TestEntityIndexed>> queryStringEquals(String value) =>
-      throw UnimplementedError();
+  Future<List<T>> queryStringEquals(String value) => throw UnimplementedError();
+
+  /// Verifies that the executor works as expected (returns proper results).
+  Future<void> test({required int count, String? qString}) =>
+      Future.sync(() async {
+        final checkCount = (String message, Iterable list, int count) =>
+            RangeError.checkValueInInterval(list.length, count, count, message);
+
+        final inserts = prepareData(count);
+        await insertMany(inserts);
+
+        final ids = inserts.map((e) => e.id).toList(growable: false);
+        checkCount('insertMany assigns ids', ids.toSet(), count);
+
+        final items = allNotNull(await readMany(ids));
+        checkCount('readMany', items, count);
+
+        changeValues(items);
+        await updateMany(items);
+
+        if (qString != null) {
+          checkCount('query string', await queryStringEquals(qString), 1);
+        }
+
+        checkCount('count before remove',
+            (await readMany(ids)).where((e) => e != null), count);
+        await removeMany(ids);
+        checkCount('count after remove',
+            (await readMany(ids)).where((e) => e != null), 0);
+      });
 }
-
-/// Verifies that the given executor works as expectd (returns proper results).
-Future<void> testExecutor(ExecutorBase bench,
-        {required int count, String? qString}) =>
-    Future.sync(() async {
-      final checkCount = (String message, Iterable list, int count) =>
-          RangeError.checkValueInInterval(list.length, count, count, message);
-
-      final inserts = bench.prepareData(count);
-      await bench.insertMany(inserts);
-      if (qString != null) {
-        final insertsIndexed = bench.prepareDataIndexed(count * 10);
-        await bench.insertManyIndexed(insertsIndexed);
-      }
-
-      final ids = inserts.map((e) => e.id).toList(growable: false);
-      checkCount('insertMany assigns ids', ids.toSet(), count);
-
-      final itemsOptional = await bench.readMany(ids);
-
-      final items = itemsOptional.map((e) => e!).toList(growable: false);
-
-      checkCount('readMany', items, count);
-
-      bench.changeValues(items);
-      await bench.updateMany(items);
-
-      if (qString != null) {
-        checkCount('query string', await bench.queryStringEquals(qString), 1);
-      }
-
-      checkCount('count before remove',
-          (await bench.readMany(ids)).where((e) => e != null), count);
-      await bench.removeMany(ids);
-      checkCount('count after remove',
-          (await bench.readMany(ids)).where((e) => e != null), 0);
-    });

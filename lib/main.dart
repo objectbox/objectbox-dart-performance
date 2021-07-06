@@ -5,12 +5,15 @@ import 'package:path/path.dart' as path;
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
 
+import 'model.dart';
 import 'executor.dart';
 import 'obx_executor.dart' as obx;
+
 import 'sqf_executor.dart' as sqf;
 import 'hive_executor.dart' as hive;
-import 'hive_lazy_executor.dart' as hive_lazy;
-import 'cf_executor.dart' as cf;
+
+// import 'hive_lazy_executor.dart' as hive_lazy;
+// import 'cf_executor.dart' as cf;
 import 'time_tracker.dart';
 
 void main() {
@@ -64,6 +67,7 @@ class MyHomePage extends StatefulWidget {
 
 class _MyHomePageState extends State<MyHomePage> {
   var _db = 1;
+  var _indexed = false;
   final _countController = TextEditingController(text: '10000');
   final _runsController = TextEditingController(text: '10');
   var _result = 'not executed yet';
@@ -82,6 +86,25 @@ class _MyHomePageState extends State<MyHomePage> {
     getApplicationDocumentsDirectory().then(appDir.complete);
   }
 
+  Future<ExecutorBase<T>> _createExecutor<T extends TestEntity>(
+      Directory dbDir) async {
+    switch (_db) {
+      case 1:
+        return Future.value(obx.Executor<T>(dbDir, _tracker));
+      case 2:
+        return sqf.Executor.create<T>(
+            Directory(path.join(dbDir.path, 'bench.db')), _tracker);
+      case 3:
+        return hive.Executor.create<T>(dbDir, _tracker);
+      // case 4:
+      //   return hive_lazy.Executor.create<T>(dbDir, _tracker);
+      // case 5:
+      //   return cf.Executor.create<T>(dbDir, _tracker);
+      default:
+        throw Exception('Unknown executor');
+    }
+  }
+
   void _runBenchmark() async {
     setState(() {
       _result = 'Benchmark starting...';
@@ -93,27 +116,11 @@ class _MyHomePageState extends State<MyHomePage> {
 
     ExecutorBase? executor;
     try {
-      switch (_db) {
-        case 1:
-          executor = obx.Executor(dbDir, _tracker);
-          break;
-        case 2:
-          executor = await sqf.Executor.create(
-              Directory(path.join(dbDir.path, 'bench.db')), _tracker);
-          break;
-        case 3:
-          executor = await hive.Executor.create(dbDir, _tracker);
-          break;
-        case 4:
-          executor = await hive_lazy.Executor.create(dbDir, _tracker);
-          break;
-        case 5:
-          executor = await cf.Executor.create(dbDir, _tracker);
-          break;
-        default:
-          throw Exception('Unknown executor');
+      if (_indexed) {
+        executor = await _createExecutor<TestEntityIndexed>(dbDir);
+      } else {
+        executor = await _createExecutor<TestEntityPlain>(dbDir);
       }
-
       await _runBenchmarkOn(executor);
     } finally {
       await executor?.close();
@@ -121,17 +128,16 @@ class _MyHomePageState extends State<MyHomePage> {
     }
   }
 
-  Future<void> _runBenchmarkOn(ExecutorBase bench) async {
+  Future<void> _runBenchmarkOn<T>(ExecutorBase bench) async {
     final count = int.parse(_countController.value.text);
     final inserts = bench.prepareData(count);
 
     // query is executed on a database with 10 times the given number of objects
-    final insertsIndexed = bench.prepareDataIndexed(count * 10);
-    final qStringValue = insertsIndexed[count * 5].tString;
+    final qStringValue = inserts[(count / 2).floor()].tString;
 
     // Before we start to benchmark: verify the executor works as expected.
     try {
-      await testExecutor(bench, count: count, qString: qStringValue);
+      await bench.test(count: count, qString: qStringValue);
     } catch (e) {
       setState(() {
         _result = "Executor test failed: $e";
@@ -142,12 +148,11 @@ class _MyHomePageState extends State<MyHomePage> {
     _tracker.clear();
     final runs = int.parse(_runsController.value.text);
 
-    await bench.insertManyIndexed(insertsIndexed);
     for (var i = 0; i < runs; i++) {
       await bench.insertMany(inserts);
       final ids = inserts.map((e) => e.id).toList(growable: false);
       final itemsOptional = await bench.readMany(ids);
-      final items = itemsOptional.map((e) => e!).toList(growable: false);
+      final items = bench.allNotNull(itemsOptional);
       bench.changeValues(items);
       await bench.updateMany(items);
       await bench.removeMany(ids);
@@ -159,7 +164,7 @@ class _MyHomePageState extends State<MyHomePage> {
       await Future.delayed(Duration(seconds: 0)); // yield to re-render
     }
 
-    _result = '';
+    _result = 'Benchmark finished (index = $_indexed)\n';
     _tracker.printTimes(avgOnly: true, functions: [
       'insertMany',
       'readMany',
@@ -170,7 +175,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
     // Sanity check after the benchmark: subsequent runs must have same results.
     try {
-      await testExecutor(bench, count: count, qString: null);
+      await bench.test(count: count, qString: null);
     } catch (e) {
       setState(() {
         _result = "Executor test failed: $e";
@@ -234,6 +239,21 @@ class _MyHomePageState extends State<MyHomePage> {
                       _db = value as int;
                     });
                   }),
+              Spacer(),
+              Text('Index'),
+              Switch(
+                value: _indexed,
+                onChanged: (value) {
+                  setState(() {
+                    _indexed = value;
+                  });
+                },
+                activeTrackColor: Colors.yellow,
+                activeColor: Colors.orangeAccent,
+              ),
+              Spacer(),
+            ]),
+            Row(children: [
               Spacer(),
               Expanded(
                   child: TextField(

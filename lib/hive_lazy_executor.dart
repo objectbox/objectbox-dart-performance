@@ -6,14 +6,17 @@ import 'executor.dart';
 import 'time_tracker.dart';
 import 'model.dart';
 
-class Executor extends ExecutorBase {
-  late final LazyBox<TestEntity> _box;
+class Executor<T extends TestEntity> extends ExecutorBase<T> {
+  late final LazyBox<T> _box;
 
   Executor._(this._box, TimeTracker tracker) : super(tracker);
 
   static Future<Executor> create(Directory dbDir, TimeTracker tracker) async {
-    if (!Hive.isAdapterRegistered(TestEntityAdapter().typeId)) {
-      Hive.registerAdapter(TestEntityAdapter());
+    if (!Hive.isAdapterRegistered(TestEntityPlainAdapter().typeId)) {
+      Hive.registerAdapter(TestEntityPlainAdapter());
+    }
+    if (!Hive.isAdapterRegistered(TestEntityIndexedAdapter().typeId)) {
+      Hive.registerAdapter(TestEntityIndexedAdapter());
     }
     return Executor._(
         await Hive.openLazyBox('TestEntity', path: dbDir.path), tracker);
@@ -21,23 +24,23 @@ class Executor extends ExecutorBase {
 
   Future<void> close() => _box.close();
 
-  Future<void> insertMany(List<TestEntity> items) async =>
+  Future<void> insertMany(List<T> items) async =>
       tracker.trackAsync('insertMany', () async {
         int id = 1;
-        final itemsById = <int, TestEntity>{};
-        items.forEach((TestEntity o) {
+        final itemsById = <int, T>{};
+        items.forEach((T o) {
           if (o.id == 0) o.id = id++;
           itemsById[o.id] = o;
         });
         return await _box.putAll(itemsById);
       });
 
-  Future<void> updateMany(List<TestEntity> items) async => tracker.trackAsync(
+  Future<void> updateMany(List<T> items) async => tracker.trackAsync(
       'updateMany',
-      () async => await _box.putAll(Map<int, TestEntity>.fromIterable(items,
-          key: (o) => o.id, value: (o) => o)));
+      () async => await _box.putAll(
+          Map<int, T>.fromIterable(items, key: (o) => o.id, value: (o) => o)));
 
-  Future<List<TestEntity?>> readMany(List<int> ids) => tracker.trackAsync(
+  Future<List<T?>> readMany(List<int> ids) => tracker.trackAsync(
       'readMany', () => Future.wait(ids.map(_box.get).toList()));
 
   Future<void> removeMany(List<int> ids) async =>
@@ -47,7 +50,7 @@ class Executor extends ExecutorBase {
       });
 
   // not supported - there's no iterator
-  Future<List<TestEntityIndexed>> queryStringEquals(String val) =>
-      tracker.track('queryStringEquals',
-          () => Future.error('Hive does not support queries on lazy boxes'));
+  Future<List<T>> queryStringEquals(String val) => tracker.track(
+      'queryStringEquals',
+      () => Future.error('Hive does not support queries on lazy boxes'));
 }
