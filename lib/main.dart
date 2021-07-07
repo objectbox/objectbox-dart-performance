@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:ui';
 
 import 'package:path/path.dart' as path;
 import 'package:flutter/material.dart';
@@ -65,18 +66,32 @@ class MyHomePage extends StatefulWidget {
   _MyHomePageState createState() => _MyHomePageState();
 }
 
+enum DbEngine { ObjectBox, sqflite, Hive }
+
 class _MyHomePageState extends State<MyHomePage> {
-  var _db = 1;
+  var _db = DbEngine.ObjectBox;
   var _indexed = false;
   final _countController = TextEditingController(text: '10000');
   final _runsController = TextEditingController(text: '10');
-  var _result = 'not executed yet';
-  late final TimeTracker _tracker = TimeTracker(outputFn: _print);
+  late final TimeTracker _tracker = TimeTracker(_print);
   final appDir = Completer<Directory>();
 
-  void _print(String str) {
+  var _result = '';
+  final _resultRows = <TableRow>[];
+
+  void _print(List<String> columns) {
     setState(() {
-      _result += "\n$str";
+      final cols = <Widget>[];
+      for (var i = 0; i < columns.length; i++) {
+        cols.add(Text(columns[i],
+            softWrap: false,
+            style: TextStyle(
+                fontSize: 20,
+                fontWeight:
+                    _resultRows.isEmpty ? FontWeight.bold : FontWeight.normal),
+            textAlign: i == 0 ? TextAlign.left : TextAlign.right));
+      }
+      _resultRows.add(TableRow(children: cols));
     });
   }
 
@@ -89,12 +104,12 @@ class _MyHomePageState extends State<MyHomePage> {
   Future<ExecutorBase<T>> _createExecutor<T extends TestEntity>(
       Directory dbDir) async {
     switch (_db) {
-      case 1:
+      case DbEngine.ObjectBox:
         return Future.value(obx.Executor<T>(dbDir, _tracker));
-      case 2:
+      case DbEngine.sqflite:
         return sqf.Executor.create<T>(
             Directory(path.join(dbDir.path, 'bench.db')), _tracker);
-      case 3:
+      case DbEngine.Hive:
         return hive.Executor.create<T>(dbDir, _tracker);
       // case 4:
       //   return hive_lazy.Executor.create<T>(dbDir, _tracker);
@@ -105,9 +120,12 @@ class _MyHomePageState extends State<MyHomePage> {
     }
   }
 
+  bool get indexed => _indexed && _db != DbEngine.Hive;
+
   void _runBenchmark() async {
     setState(() {
       _result = 'Benchmark starting...';
+      _resultRows.clear();
     });
 
     final dbDir = (await appDir.future).createTempSync();
@@ -116,7 +134,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
     ExecutorBase? executor;
     try {
-      if (_indexed) {
+      if (indexed) {
         executor = await _createExecutor<TestEntityIndexed>(dbDir);
       } else {
         executor = await _createExecutor<TestEntityPlain>(dbDir);
@@ -164,7 +182,7 @@ class _MyHomePageState extends State<MyHomePage> {
       await Future.delayed(Duration(seconds: 0)); // yield to re-render
     }
 
-    _result = 'Benchmark finished (index = $_indexed)\n';
+    _result = 'Benchmark finished (index = $indexed)\n';
     _tracker.printTimes(avgOnly: true, functions: [
       'insertMany',
       'readMany',
@@ -209,48 +227,35 @@ class _MyHomePageState extends State<MyHomePage> {
               Spacer(),
               DropdownButton(
                   value: _db,
-                  items: [
-                    DropdownMenuItem(
-                      child: Text('ObjectBox'),
-                      value: 1,
-                    ),
-                    DropdownMenuItem(
-                      child: Text("sqflite"),
-                      value: 2,
-                    ),
-                    DropdownMenuItem(
-                      child: Text("Hive"),
-                      value: 3,
-                    ),
-                    // These are currently not fully implemented:
-                    // DropdownMenuItem(
-                    //   child: Text("Hive Lazy"),
-                    //   value: 4,
-                    // ),
-                    // DropdownMenuItem(
-                    //   child: Text("Cloud Firestore"),
-                    //   value: 5,
-                    //   // max batch size for firestore is 500
-                    //   onTap: () => _countController.text = '500',
-                    // ),
-                  ],
-                  onChanged: (value) {
+                  items: DbEngine.values
+                      .map((DbEngine e) => DropdownMenuItem(
+                            child: Text(e.toString().substring(
+                                e.runtimeType.toString().length + 1)),
+                            value: e,
+                          ))
+                      .toList(),
+                  onChanged: (DbEngine? value) {
                     setState(() {
-                      _db = value as int;
+                      _db = value!;
+                      _result = '';
+                      _resultRows.clear();
                     });
                   }),
               Spacer(),
               Text('Index'),
-              Switch(
-                value: _indexed,
-                onChanged: (value) {
-                  setState(() {
-                    _indexed = value;
-                  });
-                },
-                activeTrackColor: Colors.yellow,
-                activeColor: Colors.orangeAccent,
-              ),
+              if (_db == DbEngine.Hive)
+                Text(' not available')
+              else
+                Switch(
+                  value: _indexed,
+                  onChanged: (value) {
+                    setState(() {
+                      _indexed = value;
+                    });
+                  },
+                  activeTrackColor: Colors.yellow,
+                  activeColor: Colors.orangeAccent,
+                ),
               Spacer(),
             ]),
             Row(children: [
@@ -276,6 +281,14 @@ class _MyHomePageState extends State<MyHomePage> {
             ]),
             Spacer(),
             Text(_result),
+            Spacer(),
+            Container(
+                padding: EdgeInsets.symmetric(horizontal: 30),
+                child: Table(
+                    border: TableBorder(
+                        horizontalInside:
+                            BorderSide(color: const Color(0x55000000))),
+                    children: _resultRows)),
             Spacer(),
           ],
         )),

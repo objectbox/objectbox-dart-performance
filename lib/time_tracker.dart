@@ -1,9 +1,9 @@
 class TimeTracker {
   /// list of runtimes indexed by function name
   final _times = <String, List<Duration>>{};
-  final void Function(String) _outputFn;
+  final void Function(List<String>) outputFn;
 
-  TimeTracker({void Function(String) outputFn = print}) : _outputFn = outputFn;
+  TimeTracker(this.outputFn);
 
   void clear() => _times.clear();
 
@@ -43,7 +43,8 @@ class TimeTracker {
     return result;
   }
 
-  void _print(List<dynamic> varArgs) => _outputFn(varArgs.join('\t'));
+  void _print(List<dynamic> varArgs) =>
+      outputFn(varArgs.map((e) => e.toString()).toList());
 
   void printTimes({List<String>? functions, bool avgOnly = false}) {
     functions ??= _times.keys.toList();

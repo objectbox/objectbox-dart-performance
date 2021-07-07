@@ -29,7 +29,7 @@ void main(List<String> arguments) async {
     dbDir.deleteSync(recursive: true);
   }
 
-  final tracker = TimeTracker();
+  final tracker = TimeTracker((Iterable<String> columns) => print(columns));
   final bench = Executor(dbDir, tracker);
 
   final inserts = bench.prepareData(count);
