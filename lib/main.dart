@@ -158,25 +158,15 @@ class _MyHomePageState extends State<MyHomePage> {
 
   Future<void> printResult(String value) async {
     setState(() => _result = value);
-    await Future.delayed(Duration(seconds: 0));// yield to re-render
+    await Future.delayed(Duration(seconds: 0)); // yield to re-render
   }
 
-  Future<void> _runBenchmarkOn<T>(ExecutorBase bench) async {
+  Future<void> _runBenchmarkOn(ExecutorBase bench) async {
     final count = int.parse(_countController.value.text);
 
     // Before we start to benchmark: verify the executor works as expected.
-    try {
-      await bench.test(
-          count: count,
-          qString: _mode == Mode.Queries
-              ? bench.prepareData((count / 2).floor()).last.tString
-              : null);
-    } catch (e) {
-      setState(() {
-        _result = "Executor test failed: $e";
-      });
-      return;
-    }
+    // assert() makes this only run in debug mode
+    assert(await _testBenchmark(bench));
 
     _tracker.clear();
     final runs = int.parse(_runsController.value.text);
@@ -231,14 +221,23 @@ class _MyHomePageState extends State<MyHomePage> {
     }
 
     // Sanity check after the benchmark: subsequent runs must have same results.
+    assert(await _testBenchmark(bench));
+  }
+
+  Future<bool> _testBenchmark(ExecutorBase bench) async {
     try {
-      await bench.test(count: count, qString: null);
+      final count = 100;
+      await bench.test(
+          count: count,
+          qString: _mode == Mode.Queries
+              ? bench.prepareData((count / 2).floor()).last.tString
+              : null);
     } catch (e) {
       setState(() {
         _result = "Executor test failed: $e";
       });
-      return;
     }
+    return true;
   }
 
   @override
