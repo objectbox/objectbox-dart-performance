@@ -156,16 +156,20 @@ class _MyHomePageState extends State<MyHomePage> {
     }
   }
 
+  Future<void> printResult(String value) async {
+    setState(() => _result = value);
+    await Future.delayed(Duration(seconds: 0));// yield to re-render
+  }
+
   Future<void> _runBenchmarkOn<T>(ExecutorBase bench) async {
     final count = int.parse(_countController.value.text);
-    final inserts = bench.prepareData(count);
 
     // Before we start to benchmark: verify the executor works as expected.
     try {
       await bench.test(
           count: count,
           qString: _mode == Mode.Queries
-              ? inserts[(count / 2).floor()].tString
+              ? bench.prepareData((count / 2).floor()).last.tString
               : null);
     } catch (e) {
       setState(() {
@@ -181,6 +185,7 @@ class _MyHomePageState extends State<MyHomePage> {
       switch (_mode) {
         case Mode.CRUD:
           for (var i = 0; i < runs; i++) {
+            final inserts = bench.prepareData(count);
             await bench.insertMany(inserts);
             final ids = inserts.map((e) => e.id).toList(growable: false);
             final itemsOptional = await bench.readMany(ids);
@@ -189,31 +194,30 @@ class _MyHomePageState extends State<MyHomePage> {
             await bench.updateMany(items);
             await bench.removeMany(ids);
 
-            setState(() {
-              _result = '$_mode: ${i + 1}/$runs finished';
-            });
-            await Future.delayed(Duration(seconds: 0)); // yield to re-render
+            await printResult('$_mode: ${i + 1}/$runs finished');
           }
+
           _tracker.printTimes(avgOnly: true, functions: [
             'insertMany',
             'readMany',
             'updateMany',
             'removeMany',
-            'queryStringEquals',
           ]);
           break;
 
         case Mode.Queries:
-          await bench.insertMany(bench.prepareData(count));
-          final qStringValue = inserts[(count / 2).floor()].tString;
+          await printResult('Preparing data...');
+          final inserts = bench.prepareData(count);
+          await bench.insertMany(inserts);
 
           for (var i = 0; i < runs; i++) {
+            final qStringValue = inserts[(count / runs * i).floor()].tString;
             final qStringMatching = await bench.queryStringEquals(qStringValue);
             assert(qStringMatching.length == 1);
-            setState(() {
-              _result = '$_mode: ${i + 1}/$runs finished';
-            });
+
+            await printResult('$_mode: ${i + 1}/$runs finished');
           }
+
           _tracker.printTimes(avgOnly: true, functions: [
             'queryStringEquals',
           ]);
@@ -221,7 +225,7 @@ class _MyHomePageState extends State<MyHomePage> {
       }
     } catch (e) {
       setState(() {
-        _result = "Benchmark run failed: $e";
+        _result = "Benchmark failed: $e";
       });
       return;
     }
