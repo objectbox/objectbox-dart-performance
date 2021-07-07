@@ -2,16 +2,15 @@ import 'dart:async';
 import 'dart:io';
 import 'dart:ui';
 
-import 'package:path/path.dart' as path;
 import 'package:flutter/material.dart';
+import 'package:path/path.dart' as path;
 import 'package:path_provider/path_provider.dart';
 
-import 'model.dart';
 import 'executor.dart';
-import 'obx_executor.dart' as obx;
-
-import 'sqf_executor.dart' as sqf;
 import 'hive_executor.dart' as hive;
+import 'model.dart';
+import 'obx_executor.dart' as obx;
+import 'sqf_executor.dart' as sqf;
 
 // import 'hive_lazy_executor.dart' as hive_lazy;
 // import 'cf_executor.dart' as cf;
@@ -68,8 +67,11 @@ class MyHomePage extends StatefulWidget {
 
 enum DbEngine { ObjectBox, sqflite, Hive }
 
+enum Mode { CRUD, Queries }
+
 class _MyHomePageState extends State<MyHomePage> {
   var _db = DbEngine.ObjectBox;
+  var _mode = Mode.CRUD;
   var _indexed = false;
   final _countController = TextEditingController(text: '10000');
   final _runsController = TextEditingController(text: '10');
@@ -94,6 +96,14 @@ class _MyHomePageState extends State<MyHomePage> {
       _resultRows.add(TableRow(children: cols));
     });
   }
+
+  void configure(DbEngine db, Mode mode, bool indexed) => setState(() {
+        _db = db;
+        _mode = mode;
+        _indexed = indexed;
+        _result = '';
+        _resultRows.clear();
+      });
 
   @override
   void initState() {
@@ -150,12 +160,13 @@ class _MyHomePageState extends State<MyHomePage> {
     final count = int.parse(_countController.value.text);
     final inserts = bench.prepareData(count);
 
-    // query is executed on a database with 10 times the given number of objects
-    final qStringValue = inserts[(count / 2).floor()].tString;
-
     // Before we start to benchmark: verify the executor works as expected.
     try {
-      await bench.test(count: count, qString: qStringValue);
+      await bench.test(
+          count: count,
+          qString: _mode == Mode.Queries
+              ? inserts[(count / 2).floor()].tString
+              : null);
     } catch (e) {
       setState(() {
         _result = "Executor test failed: $e";
@@ -166,30 +177,54 @@ class _MyHomePageState extends State<MyHomePage> {
     _tracker.clear();
     final runs = int.parse(_runsController.value.text);
 
-    for (var i = 0; i < runs; i++) {
-      await bench.insertMany(inserts);
-      final ids = inserts.map((e) => e.id).toList(growable: false);
-      final itemsOptional = await bench.readMany(ids);
-      final items = bench.allNotNull(itemsOptional);
-      bench.changeValues(items);
-      await bench.updateMany(items);
-      await bench.removeMany(ids);
-      await bench.queryStringEquals(qStringValue);
+    try {
+      switch (_mode) {
+        case Mode.CRUD:
+          for (var i = 0; i < runs; i++) {
+            await bench.insertMany(inserts);
+            final ids = inserts.map((e) => e.id).toList(growable: false);
+            final itemsOptional = await bench.readMany(ids);
+            final items = bench.allNotNull(itemsOptional);
+            bench.changeValues(items);
+            await bench.updateMany(items);
+            await bench.removeMany(ids);
 
+            setState(() {
+              _result = '$_mode: ${i + 1}/$runs finished';
+            });
+            await Future.delayed(Duration(seconds: 0)); // yield to re-render
+          }
+          _tracker.printTimes(avgOnly: true, functions: [
+            'insertMany',
+            'readMany',
+            'updateMany',
+            'removeMany',
+            'queryStringEquals',
+          ]);
+          break;
+
+        case Mode.Queries:
+          await bench.insertMany(bench.prepareData(count));
+          final qStringValue = inserts[(count / 2).floor()].tString;
+
+          for (var i = 0; i < runs; i++) {
+            final qStringMatching = await bench.queryStringEquals(qStringValue);
+            assert(qStringMatching.length == 1);
+            setState(() {
+              _result = '$_mode: ${i + 1}/$runs finished';
+            });
+          }
+          _tracker.printTimes(avgOnly: true, functions: [
+            'queryStringEquals',
+          ]);
+          break;
+      }
+    } catch (e) {
       setState(() {
-        _result = '${i + 1}/$runs finished';
+        _result = "Benchmark run failed: $e";
       });
-      await Future.delayed(Duration(seconds: 0)); // yield to re-render
+      return;
     }
-
-    _result = 'Benchmark finished (index = $indexed)\n';
-    _tracker.printTimes(avgOnly: true, functions: [
-      'insertMany',
-      'readMany',
-      'updateMany',
-      'removeMany',
-      'queryStringEquals',
-    ]);
 
     // Sanity check after the benchmark: subsequent runs must have same results.
     try {
@@ -227,20 +262,14 @@ class _MyHomePageState extends State<MyHomePage> {
               Spacer(),
               DropdownButton(
                   value: _db,
-                  items: DbEngine.values
-                      .map((DbEngine e) => DropdownMenuItem(
-                            child: Text(e.toString().substring(
-                                e.runtimeType.toString().length + 1)),
-                            value: e,
-                          ))
-                      .toList(),
-                  onChanged: (DbEngine? value) {
-                    setState(() {
-                      _db = value!;
-                      _result = '';
-                      _resultRows.clear();
-                    });
-                  }),
+                  items: enumDropDownItems(DbEngine.values),
+                  onChanged: (DbEngine? value) =>
+                      configure(value!, _mode, _indexed)),
+              Spacer(),
+              DropdownButton(
+                  value: _mode,
+                  items: enumDropDownItems(Mode.values),
+                  onChanged: (Mode? value) => configure(_db, value!, _indexed)),
               Spacer(),
               Text('Index'),
               if (_db == DbEngine.Hive)
@@ -248,11 +277,7 @@ class _MyHomePageState extends State<MyHomePage> {
               else
                 Switch(
                   value: _indexed,
-                  onChanged: (value) {
-                    setState(() {
-                      _indexed = value;
-                    });
-                  },
+                  onChanged: (bool value) => configure(_db, _mode, value),
                   activeTrackColor: Colors.yellow,
                   activeColor: Colors.orangeAccent,
                 ),
@@ -301,3 +326,11 @@ class _MyHomePageState extends State<MyHomePage> {
     );
   }
 }
+
+List<DropdownMenuItem<T>> enumDropDownItems<T>(List<T> values) => values
+    .map((dynamic e) => DropdownMenuItem<T>(
+          child:
+              Text(e.toString().substring(e.runtimeType.toString().length + 1)),
+          value: e,
+        ))
+    .toList();

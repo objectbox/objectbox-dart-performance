@@ -3,9 +3,9 @@ import 'dart:io';
 import 'package:objectbox/objectbox.dart';
 
 import 'executor.dart';
-import 'time_tracker.dart';
 import 'model.dart';
 import 'objectbox.g.dart';
+import 'time_tracker.dart';
 
 class Executor<T extends TestEntity> extends ExecutorBase<T> {
   final Store store;

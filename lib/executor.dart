@@ -1,5 +1,5 @@
-import 'time_tracker.dart';
 import 'model.dart';
+import 'time_tracker.dart';
 
 abstract class ExecutorBase<T extends TestEntity> {
   static const caseSensitive = true;

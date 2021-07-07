@@ -13,7 +13,7 @@ flutter:
 dependencies:
   flutter:
     sdk: flutter
-  objectbox: ^1.0.0
+  objectbox: ^1.1.0
   objectbox_flutter_libs: any
   path_provider: ^2.0.1
   sqflite: ^2.0.0+3
