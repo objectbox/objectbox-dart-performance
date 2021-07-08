@@ -178,6 +178,8 @@ class _MyHomePageState extends State<MyHomePage> {
             final inserts = bench.prepareData(count);
             await bench.insertMany(inserts);
             final ids = inserts.map((e) => e.id).toList(growable: false);
+            final idsShuffled = (ids.toList(growable: false))..shuffle();
+            await bench.readMany(idsShuffled, '(random)');
             final itemsOptional = await bench.readMany(ids);
             final items = bench.allNotNull(itemsOptional);
             bench.changeValues(items);
@@ -190,6 +192,7 @@ class _MyHomePageState extends State<MyHomePage> {
           _tracker.printTimes(avgOnly: true, functions: [
             'insertMany',
             'readMany',
+            'readMany(random)',
             'updateMany',
             'removeMany',
           ]);

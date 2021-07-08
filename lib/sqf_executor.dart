@@ -23,8 +23,8 @@ class Executor<T extends TestEntity> extends ExecutorBase<T> {
         await openDatabase(dbDir.path, version: 1,
             onCreate: (Database db, int version) async {
           await db.execute('''
-                  CREATE TABLE $table ( 
-                    id integer primary key autoincrement, 
+                  CREATE TABLE $table (
+                    id integer primary key autoincrement,
                     tString text,
                     tInt int,
                     tLong int,
@@ -69,8 +69,9 @@ class Executor<T extends TestEntity> extends ExecutorBase<T> {
           .map(reader)
           .toList();
 
-  Future<List<T?>> readMany(List<int> ids) => tracker.trackAsync('readMany',
-      () async => await _query(_fromMap, 'id in (${ids.join(',')})'));
+  Future<List<T?>> readMany(List<int> ids, [String? benchmarkQualifier]) =>
+      tracker.trackAsync('readMany' + (benchmarkQualifier ?? ''),
+          () async => await _query(_fromMap, 'id in (${ids.join(',')})'));
 
   Future<void> removeMany(List<int> ids) async => tracker.trackAsync(
       'removeMany',

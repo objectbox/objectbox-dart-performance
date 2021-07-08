@@ -28,7 +28,7 @@ abstract class ExecutorBase<T extends TestEntity> {
 
   Future<void> updateMany(List<T> items);
 
-  Future<List<T?>> readMany(List<int> ids);
+  Future<List<T?>> readMany(List<int> ids, [String? benchmarkQualifier]);
 
   Future<void> removeMany(List<int> ids);
 

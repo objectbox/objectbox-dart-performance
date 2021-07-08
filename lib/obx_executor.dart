@@ -44,8 +44,9 @@ class Executor<T extends TestEntity> extends ExecutorBase<T> {
   Future<void> updateMany(List<T> items) =>
       Future.value(tracker.track('updateMany', () => box.putMany(items)));
 
-  Future<List<T?>> readMany(List<int> ids) =>
-      Future.value(tracker.track('readMany', () => box.getMany(ids)));
+  Future<List<T?>> readMany(List<int> ids, [String? benchmarkQualifier]) =>
+      Future.value(tracker.track(
+          'readMany' + (benchmarkQualifier ?? ''), () => box.getMany(ids)));
 
   Future<void> removeMany(List<int> ids) =>
       Future.value(tracker.track('removeMany', () => box.removeMany(ids)));
