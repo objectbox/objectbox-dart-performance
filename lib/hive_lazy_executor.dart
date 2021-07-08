@@ -12,12 +12,6 @@ class Executor<T extends TestEntity> extends ExecutorBase<T> {
   Executor._(this._box, TimeTracker tracker) : super(tracker);
 
   static Future<Executor> create(Directory dbDir, TimeTracker tracker) async {
-    if (!Hive.isAdapterRegistered(TestEntityPlainAdapter().typeId)) {
-      Hive.registerAdapter(TestEntityPlainAdapter());
-    }
-    if (!Hive.isAdapterRegistered(TestEntityIndexedAdapter().typeId)) {
-      Hive.registerAdapter(TestEntityIndexedAdapter());
-    }
     return Executor._(
         await Hive.openLazyBox('TestEntity', path: dbDir.path), tracker);
   }

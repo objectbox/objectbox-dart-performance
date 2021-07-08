@@ -3,11 +3,12 @@ import 'package:hive/hive.dart';
 
 part 'model.g.dart';
 
-abstract class TestEntity {
+abstract class EntityWithSettableId {
   int get id;
-
   set id(int value);
+}
 
+abstract class TestEntity extends EntityWithSettableId {
   String get tString;
 
   int get tInt; // 32-bit
@@ -82,4 +83,105 @@ class TestEntityIndexed implements TestEntity {
   static TestEntityIndexed fromMap(Map<String, dynamic> map) =>
       TestEntityIndexed(map['id'] ?? 0, map['tString'], map['tInt'],
           map['tLong'], map['tDouble']);
+}
+
+abstract class RelSourceEntity extends EntityWithSettableId {
+  int get id;
+
+  set id(int value);
+
+  String get tString;
+
+  int get tLong;
+
+  set relTarget(RelTargetEntity value);
+
+  static Map<String, dynamic> toMap(RelSourceEntity object) =>
+      <String, dynamic>{
+        'id': object.id == 0 ? null : object.id,
+        'tString': object.tString,
+        'tLong': object.tLong,
+      };
+}
+
+@Entity()
+@HiveType(typeId: 3)
+class RelSourceEntityPlain implements RelSourceEntity {
+  @HiveField(0)
+  int id;
+
+  @HiveField(1)
+  final String tString;
+
+  @HiveField(2)
+  final int tLong; // 64-bit
+
+  final obxRelTarget = ToOne<RelTargetEntity>();
+
+  @Transient()
+  @HiveField(3)
+  int hiveRelTarget = 0;
+
+  set relTarget(RelTargetEntity value) {
+    assert(value.id != 0);
+    obxRelTarget.targetId = value.id;
+    hiveRelTarget = value.id;
+  }
+
+  RelSourceEntityPlain(this.id, this.tString, this.tLong);
+
+  static RelSourceEntityPlain fromMap(Map<String, dynamic> map) =>
+      RelSourceEntityPlain(map['id'] ?? 0, map['tString'], map['tLong']);
+}
+
+@Entity()
+@HiveType(typeId: 4)
+class RelSourceEntityIndexed implements RelSourceEntity {
+  @HiveField(0)
+  int id;
+
+  @Index()
+  @HiveField(1)
+  final String tString;
+
+  @HiveField(2)
+  final int tLong; // 64-bit
+
+  final obxRelTarget = ToOne<RelTargetEntity>();
+
+  @Transient()
+  @HiveField(3)
+  int hiveRelTarget = 0;
+
+  set relTarget(RelTargetEntity value) {
+    assert(value.id != 0);
+    obxRelTarget.targetId = value.id;
+    hiveRelTarget = value.id;
+  }
+
+  RelSourceEntityIndexed(this.id, this.tString, this.tLong);
+
+  static RelSourceEntityIndexed fromMap(Map<String, dynamic> map) =>
+      RelSourceEntityIndexed(map['id'] ?? 0, map['tString'], map['tLong']);
+}
+
+@Entity()
+@HiveType(typeId: 5)
+class RelTargetEntity extends EntityWithSettableId {
+  @HiveField(0)
+  int id;
+
+  @HiveField(1)
+  String name;
+
+  RelTargetEntity(this.id, this.name);
+
+  static Map<String, dynamic> toMap(RelTargetEntity object) =>
+      <String, dynamic>{
+        'id': object.id == 0 ? null : object.id,
+        'name': object.name
+      };
+
+  static RelTargetEntity fromMap(Map<String, dynamic> map) =>
+      RelTargetEntity(map['id'] ?? 0, map['name']);
 }

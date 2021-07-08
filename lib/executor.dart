@@ -4,19 +4,19 @@ import 'time_tracker.dart';
 abstract class ExecutorBase<T extends TestEntity> {
   static const caseSensitive = true;
 
-  final TimeTracker _tracker;
+  final TimeTracker tracker;
 
-  TimeTracker get tracker => _tracker;
-
-  ExecutorBase(this._tracker);
+  ExecutorBase(this.tracker);
 
   Future<void> close();
 
+  bool get indexed => T == TestEntityIndexed;
+
   List<T> prepareData(int count) => List.generate(
       count,
-      (i) => T == TestEntityPlain
-          ? TestEntityPlain(0, 'Entity #$i', i, i, i.toDouble()) as T
-          : TestEntityIndexed(0, 'Entity #$i', i, i, i.toDouble()) as T,
+      (i) => indexed
+          ? TestEntityIndexed(0, 'Entity #$i', i, i, i.toDouble()) as T
+          : TestEntityPlain(0, 'Entity #$i', i, i, i.toDouble()) as T,
       growable: false);
 
   void changeValues(List<T> items) => items.forEach((item) => item.tLong *= 2);
@@ -62,4 +62,37 @@ abstract class ExecutorBase<T extends TestEntity> {
         checkCount('count after remove',
             (await readMany(ids)).where((e) => e != null), 0);
       });
+
+  Future<ExecutorBaseRel> createRelBenchmark() => throw UnimplementedError();
+}
+
+/// Benchmark executor base class for relations tests
+abstract class ExecutorBaseRel<T extends RelSourceEntity> {
+  final TimeTracker tracker;
+
+  ExecutorBaseRel(this.tracker);
+
+  Future<void> close();
+
+  bool get indexed => T == RelSourceEntityIndexed;
+
+  List<T> prepareDataSources(int count, List<RelTargetEntity> targets) =>
+      List.generate(count, (i) {
+        final string = 'Source group #${i % 7}';
+        final source = indexed
+            ? RelSourceEntityIndexed(0, string, i) as T
+            : RelSourceEntityPlain(0, string, i) as T;
+        source.relTarget = targets[i % targets.length];
+        return source;
+      }, growable: false);
+
+  List<RelTargetEntity> prepareDataTargets(int count) =>
+      List.generate(count, (i) => RelTargetEntity(0, 'Target #$i'),
+          growable: false);
+
+  Future<void> insertData(int relSourceCount, int relTargetCount);
+
+  Future<List<T>> queryWithLinks(
+          String sourceStringEquals, String targetStringEquals) =>
+      throw UnimplementedError();
 }

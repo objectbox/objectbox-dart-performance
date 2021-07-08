@@ -203,17 +203,34 @@ class _MyHomePageState extends State<MyHomePage> {
           final inserts = bench.prepareData(count);
           await bench.insertMany(inserts);
 
+          final relBench = await bench.createRelBenchmark();
+          final relTargetsCount = 5;
+          await relBench.insertData(count, relTargetsCount);
+
           for (var i = 0; i < runs; i++) {
             final qStringValue = inserts[(count / runs * i).floor()].tString;
             final qStringMatching = await bench.queryStringEquals(qStringValue);
             assert(qStringMatching.length == 1);
 
+            final relResults = await relBench.queryWithLinks(
+                'Source group #${i % 7}',
+                'Target #${(i + 1) % relTargetsCount}');
+            RangeError.checkValueInInterval(
+                relResults.length,
+                count / 5 ~/ 7 - 1,
+                count / 5 ~/ 7 + 1,
+                'queryWithLinks results length');
+
             await printResult('$_mode: ${i + 1}/$runs finished');
           }
 
-          _tracker.printTimes(avgOnly: true, functions: [
-            'queryStringEquals',
-          ]);
+          _tracker.printTimes(
+              avgOnly: true,
+              functions: ['queryStringEquals', 'queryWithLinks']);
+
+          // just so that the test after benchmarks passes
+          await bench.removeMany(inserts.map((e) => e.id).toList());
+
           break;
       }
     } catch (e) {

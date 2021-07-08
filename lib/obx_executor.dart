@@ -9,32 +9,40 @@ import 'time_tracker.dart';
 
 class Executor<T extends TestEntity> extends ExecutorBase<T> {
   final Store store;
-  late final Box<T> box;
-  late final Query<T> queryStringEq;
-  late final void Function(String) queryStringEqSetValue;
+  final Box<T> box;
+  final Query<T> queryStringEq;
+  final void Function(String) queryStringEqSetValue;
 
-  Executor(Directory dbDir, TimeTracker tracker)
-      : store = Store(getObjectBoxModel(), directory: dbDir.path),
-        super(tracker) {
-    box = store.box();
+  factory Executor(Directory dbDir, TimeTracker tracker) {
+    final store = Store(getObjectBoxModel(),
+        directory: dbDir.path,
+        queriesCaseSensitiveDefault: ExecutorBase.caseSensitive);
+    late final Query<T> queryStringEq;
+    late final void Function(String) queryStringEqSetValue;
     if (T == TestEntityPlain) {
-      final query = (box as Box<TestEntityPlain>)
-          .query(TestEntityPlain_.tString
-              .equals('', caseSensitive: ExecutorBase.caseSensitive))
+      final query = store
+          .box<TestEntityPlain>()
+          .query(TestEntityPlain_.tString.equals(''))
           .build();
       final queryParam = query.param(TestEntityPlain_.tString);
       queryStringEqSetValue = (String val) => queryParam.value = val;
       queryStringEq = query as Query<T>;
     } else {
-      final query = (box as Box<TestEntityIndexed>)
-          .query(TestEntityIndexed_.tString
-              .equals('', caseSensitive: ExecutorBase.caseSensitive))
+      final query = store
+          .box<TestEntityIndexed>()
+          .query(TestEntityIndexed_.tString.equals(''))
           .build();
       final queryParam = query.param(TestEntityIndexed_.tString);
       queryStringEqSetValue = (String val) => queryParam.value = val;
       queryStringEq = query as Query<T>;
     }
+    return Executor._(tracker, store, queryStringEq, queryStringEqSetValue);
   }
+
+  Executor._(TimeTracker tracker, this.store, this.queryStringEq,
+      this.queryStringEqSetValue)
+      : box = store.box(),
+        super(tracker);
 
   Future<void> close() async => store.close();
 
@@ -55,5 +63,98 @@ class Executor<T extends TestEntity> extends ExecutorBase<T> {
       Future.value(tracker.track('queryStringEquals', () {
         queryStringEqSetValue(val);
         return queryStringEq.find();
+      }));
+
+  Future<ExecutorBaseRel> createRelBenchmark() => Future.value(indexed
+      ? ExecutorRel<RelSourceEntityIndexed>(store, tracker)
+      : ExecutorRel<RelSourceEntityPlain>(store, tracker));
+}
+
+class ExecutorRel<T extends RelSourceEntity> extends ExecutorBaseRel<T> {
+  final Store store;
+  final Box<T> box;
+  final Query<T> query;
+  final void Function(String, String) querySetParams;
+
+  factory ExecutorRel(Store store, TimeTracker tracker) {
+    // TODO following is unused because .param() on links isn't supported (yet).
+    late final void Function(String, String) querySetParams;
+    late final Query<T> queryT;
+    if (T == RelSourceEntityPlain) {
+      final query = (store
+              .box<RelSourceEntityPlain>()
+              .query(RelSourceEntityPlain_.tString.equals(''))
+                ..link(RelSourceEntityPlain_.obxRelTarget,
+                    RelTargetEntity_.name.equals('')))
+          .build();
+      final queryParam1 = query.param(RelSourceEntityPlain_.tString);
+      // final queryParam2 = query.param(RelTargetEntity_.name);
+      querySetParams = (String sourceStringEquals, String targetStringEquals) {
+        queryParam1.value = sourceStringEquals;
+        // queryParam2.value = targetStringEquals;
+      };
+      queryT = query as Query<T>;
+    } else {
+      final query = (store
+              .box<RelSourceEntityIndexed>()
+              .query(RelSourceEntityIndexed_.tString.equals(''))
+                ..link(RelSourceEntityIndexed_.obxRelTarget,
+                    RelTargetEntity_.name.equals('')))
+          .build();
+      final queryParam1 = query.param(RelSourceEntityIndexed_.tString);
+      // final queryParam2 = query.param(RelTargetEntity_.name);
+      querySetParams = (String sourceStringEquals, String targetStringEquals) {
+        queryParam1.value = sourceStringEquals;
+        // queryParam2.value = targetStringEquals;
+      };
+      queryT = query as Query<T>;
+    }
+    return ExecutorRel._(tracker, store, queryT, querySetParams);
+  }
+
+  ExecutorRel._(
+      TimeTracker tracker, this.store, this.query, this.querySetParams)
+      : box = store.box(),
+        super(tracker);
+
+  Future<void> close() async => store.close();
+
+  Future<void> insertData(int relSourceCount, int relTargetCount) =>
+      Future.sync(() {
+        final targets = prepareDataTargets(relTargetCount);
+        store.box<RelTargetEntity>().putMany(targets);
+        final sources = prepareDataSources(relSourceCount, targets);
+        box.putMany(sources);
+        assert(box.count() == relSourceCount);
+        assert(store.box<RelTargetEntity>().count() == relTargetCount);
+      });
+
+  // Future<List<T>> queryWithLinks(
+  //         String sourceStringEquals, String targetStringEquals) =>
+  //     Future.value(tracker.track('queryWithLinks', () {
+  //       querySetParams(sourceStringEquals, targetStringEquals);
+  //       return query.find();
+  //     }));
+
+  Future<List<T>> queryWithLinks(
+          String sourceStringEquals, String targetStringEquals) =>
+      Future.value(tracker.track('queryWithLinks', () {
+        late final Query<T> queryT;
+        if (T == RelSourceEntityPlain) {
+          final query = (store.box<RelSourceEntityPlain>().query(
+                  RelSourceEntityPlain_.tString.equals(sourceStringEquals))
+                ..link(RelSourceEntityPlain_.obxRelTarget,
+                    RelTargetEntity_.name.equals(targetStringEquals)))
+              .build();
+          queryT = query as Query<T>;
+        } else {
+          final query = (store.box<RelSourceEntityIndexed>().query(
+                  RelSourceEntityIndexed_.tString.equals(sourceStringEquals))
+                ..link(RelSourceEntityIndexed_.obxRelTarget,
+                    RelTargetEntity_.name.equals(targetStringEquals)))
+              .build();
+          queryT = query as Query<T>;
+        }
+        return queryT.find();
       }));
 }
