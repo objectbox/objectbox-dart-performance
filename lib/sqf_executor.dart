@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:flutter/widgets.dart';
 import 'package:sqflite/sqflite.dart';
 
 import 'executor.dart';
@@ -101,9 +102,11 @@ class ExecutorRel<T extends RelSourceEntity> extends ExecutorBaseRel<T> {
     await db.execute('''
                   CREATE TABLE $table (
                     id integer primary key autoincrement,
+                    relTargetId int,
                     tString text,
                     tLong int)
                 ''');
+    await db.execute('CREATE INDEX ${table}_rel ON $table(relTargetId)');
     if (T == RelSourceEntityIndexed) {
       await db.execute('CREATE INDEX ${table}_long ON $table(tLong)');
       await db.execute('CREATE INDEX ${table}_str ON $table(tString '
@@ -141,9 +144,16 @@ class ExecutorRel<T extends RelSourceEntity> extends ExecutorBaseRel<T> {
   }
 
   Future<List<T>> queryWithLinks(
-      String sourceStringEquals, String targetStringEquals) {
-        // TODO query
-  }
+          String sourceStringEquals, String targetStringEquals) async =>
+      tracker.trackAsync(
+          'queryWithLinks',
+          () async => (await _db.rawQuery(
+                  'SELECT $_table.* FROM $_table '
+                  'INNER JOIN $_tableTarget ON $_table.relTargetId = $_tableTarget.id '
+                  'WHERE $_table.tString = ? AND $_tableTarget.name = ?',
+                  [sourceStringEquals, targetStringEquals]))
+              .map(_fromMap)
+              .toList());
 }
 
 Future<void> _insertMany<T extends EntityWithSettableId>(
@@ -155,5 +165,5 @@ Future<void> _insertMany<T extends EntityWithSettableId>(
   for (int i = 0; i < ids.length; i++) {
     items[i].id = ids[i] as int;
   }
-  assert(ids.length == items.length)
+  assert(ids.length == items.length);
 }

@@ -124,7 +124,7 @@ class ExecutorRel<T extends RelSourceEntity> extends ExecutorBaseRel<T> {
       return _box.values
           .where((T o) =>
               matchingTargets
-                  .contains((o as RelSourceEntityPlain).hiveRelTarget) &&
+                  .contains((o as RelSourceEntityPlain).relTargetId) &&
               (ExecutorBase.caseSensitive
                       ? o.tString
                       : o.tString.toLowerCase()) ==

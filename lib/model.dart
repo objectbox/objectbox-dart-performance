@@ -94,13 +94,14 @@ abstract class RelSourceEntity extends EntityWithSettableId {
 
   int get tLong;
 
-  set relTarget(RelTargetEntity value);
+  int get relTargetId;
 
   static Map<String, dynamic> toMap(RelSourceEntity object) =>
       <String, dynamic>{
         'id': object.id == 0 ? null : object.id,
         'tString': object.tString,
         'tLong': object.tLong,
+        'relTargetId': object.relTargetId,
       };
 }
 
@@ -120,18 +121,16 @@ class RelSourceEntityPlain implements RelSourceEntity {
 
   @Transient()
   @HiveField(3)
-  int hiveRelTarget = 0;
+  final int relTargetId;
 
-  set relTarget(RelTargetEntity value) {
-    assert(value.id != 0);
-    obxRelTarget.targetId = value.id;
-    hiveRelTarget = value.id;
+  RelSourceEntityPlain(this.id, this.tString, this.tLong,
+      [this.relTargetId = 0]) {
+    obxRelTarget.targetId = relTargetId;
   }
 
-  RelSourceEntityPlain(this.id, this.tString, this.tLong);
-
   static RelSourceEntityPlain fromMap(Map<String, dynamic> map) =>
-      RelSourceEntityPlain(map['id'] ?? 0, map['tString'], map['tLong']);
+      RelSourceEntityPlain(
+          map['id'] ?? 0, map['tString'], map['tLong'], map['relTargetId']);
 }
 
 @Entity()
@@ -151,18 +150,16 @@ class RelSourceEntityIndexed implements RelSourceEntity {
 
   @Transient()
   @HiveField(3)
-  int hiveRelTarget = 0;
+  final int relTargetId;
 
-  set relTarget(RelTargetEntity value) {
-    assert(value.id != 0);
-    obxRelTarget.targetId = value.id;
-    hiveRelTarget = value.id;
+  RelSourceEntityIndexed(this.id, this.tString, this.tLong,
+      [this.relTargetId = 0]) {
+    obxRelTarget.targetId = relTargetId;
   }
 
-  RelSourceEntityIndexed(this.id, this.tString, this.tLong);
-
   static RelSourceEntityIndexed fromMap(Map<String, dynamic> map) =>
-      RelSourceEntityIndexed(map['id'] ?? 0, map['tString'], map['tLong']);
+      RelSourceEntityIndexed(
+          map['id'] ?? 0, map['tString'], map['tLong'], map['relTargetId']);
 }
 
 @Entity()

@@ -79,11 +79,10 @@ abstract class ExecutorBaseRel<T extends RelSourceEntity> {
   List<T> prepareDataSources(int count, List<RelTargetEntity> targets) =>
       List.generate(count, (i) {
         final string = 'Source group #${i % 7}';
-        final source = indexed
-            ? RelSourceEntityIndexed(0, string, i) as T
-            : RelSourceEntityPlain(0, string, i) as T;
-        source.relTarget = targets[i % targets.length];
-        return source;
+        final targetId = targets[i % targets.length].id;
+        return indexed
+            ? RelSourceEntityIndexed(0, string, i, targetId) as T
+            : RelSourceEntityPlain(0, string, i, targetId) as T;
       }, growable: false);
 
   List<RelTargetEntity> prepareDataTargets(int count) =>
