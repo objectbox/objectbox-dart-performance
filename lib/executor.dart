@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'model.dart';
 import 'time_tracker.dart';
 
@@ -76,13 +78,17 @@ abstract class ExecutorBaseRel<T extends RelSourceEntity> {
 
   bool get indexed => T == RelSourceEntityIndexed;
 
+  // ~ 0.1 percent of the total number of objects
+  static int distinctSourceStrings(int objectCount) =>
+      max(1, objectCount ~/ 100 - 1);
+
   List<T> prepareDataSources(int count, List<RelTargetEntity> targets) =>
       List.generate(count, (i) {
-        final string = 'Source group #${i % 7}';
+        final string = 'Source group #${i % distinctSourceStrings(count)}';
         final targetId = targets[i % targets.length].id;
         return indexed
-            ? RelSourceEntityIndexed(0, string, i, targetId) as T
-            : RelSourceEntityPlain(0, string, i, targetId) as T;
+            ? RelSourceEntityIndexed(0, string, i % 2, targetId) as T
+            : RelSourceEntityPlain(0, string, i % 2, targetId) as T;
       }, growable: false);
 
   List<RelTargetEntity> prepareDataTargets(int count) =>
@@ -91,7 +97,7 @@ abstract class ExecutorBaseRel<T extends RelSourceEntity> {
 
   Future<void> insertData(int relSourceCount, int relTargetCount);
 
-  Future<List<T>> queryWithLinks(
-          String sourceStringEquals, String targetStringEquals) =>
+  Future<List<T>> queryWithLinks(String sourceStringEquals, int sourceIntEquals,
+          String targetStringEquals) =>
       throw UnimplementedError();
 }

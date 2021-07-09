@@ -106,8 +106,8 @@ class ExecutorRel<T extends RelSourceEntity> extends ExecutorBaseRel<T> {
     assert(_boxTarget.length == relTargetCount);
   }
 
-  Future<List<T>> queryWithLinks(
-      String sourceStringEquals, String targetStringEquals) {
+  Future<List<T>> queryWithLinks(String sourceStringEquals, int sourceIntEquals,
+      String targetStringEquals) {
     if (!ExecutorBase.caseSensitive) {
       sourceStringEquals..toLowerCase();
       targetStringEquals..toLowerCase();
@@ -123,6 +123,7 @@ class ExecutorRel<T extends RelSourceEntity> extends ExecutorBaseRel<T> {
       assert(matchingTargets.isNotEmpty);
       return _box.values
           .where((T o) =>
+              o.tLong == sourceIntEquals &&
               matchingTargets
                   .contains((o as RelSourceEntityPlain).relTargetId) &&
               (ExecutorBase.caseSensitive

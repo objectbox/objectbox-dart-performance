@@ -3,8 +3,8 @@ import 'dart:io';
 import 'package:sqflite/sqflite.dart';
 
 import 'executor.dart';
-import 'time_tracker.dart';
 import 'model.dart';
+import 'time_tracker.dart';
 
 class Executor<T extends TestEntity> extends ExecutorBase<T> {
   final Database _db;
@@ -142,15 +142,15 @@ class ExecutorRel<T extends RelSourceEntity> extends ExecutorBaseRel<T> {
     await _insertMany(_db, sources, RelSourceEntity.toMap);
   }
 
-  Future<List<T>> queryWithLinks(
-          String sourceStringEquals, String targetStringEquals) async =>
+  Future<List<T>> queryWithLinks(String sourceStringEquals, int sourceIntEquals,
+          String targetStringEquals) async =>
       tracker.trackAsync(
           'queryWithLinks',
           () async => (await _db.rawQuery(
                   'SELECT $_table.* FROM $_table '
                   'INNER JOIN $_tableTarget ON $_table.relTargetId = $_tableTarget.id '
-                  'WHERE $_table.tString = ? AND $_tableTarget.name = ?',
-                  [sourceStringEquals, targetStringEquals]))
+                  'WHERE $_table.tString = ? AND $_table.tLong = ? AND $_tableTarget.name = ?',
+                  [sourceStringEquals, sourceIntEquals, targetStringEquals]))
               .map(_fromMap)
               .toList());
 }

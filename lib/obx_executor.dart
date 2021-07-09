@@ -74,37 +74,43 @@ class ExecutorRel<T extends RelSourceEntity> extends ExecutorBaseRel<T> {
   final Store store;
   final Box<T> box;
   final Query<T> query;
-  final void Function(String, String) querySetParams;
+  final void Function(String, int, String) querySetParams;
 
   factory ExecutorRel(Store store, TimeTracker tracker) {
-    late final void Function(String, String) querySetParams;
+    late final void Function(String, int, String) querySetParams;
     late final Query<T> queryT;
     if (T == RelSourceEntityPlain) {
-      final query = (store
-              .box<RelSourceEntityPlain>()
-              .query(RelSourceEntityPlain_.tString.equals(''))
-                ..link(RelSourceEntityPlain_.obxRelTarget,
-                    RelTargetEntity_.name.equals('')))
+      final query = (store.box<RelSourceEntityPlain>().query(
+              RelSourceEntityPlain_.tString.equals('') &
+                  RelSourceEntityPlain_.tLong.equals(0))
+            ..link(RelSourceEntityPlain_.obxRelTarget,
+                RelTargetEntity_.name.equals('')))
           .build();
       final queryParam1 = query.param(RelSourceEntityPlain_.tString);
-      final queryParam2 = query.param(RelTargetEntity_.name);
-      querySetParams = (String sourceStringEquals, String targetStringEquals) {
+      final queryParam2 = query.param(RelSourceEntityPlain_.tLong);
+      final queryParam3 = query.param(RelTargetEntity_.name);
+      querySetParams = (String sourceStringEquals, int sourceIntEquals,
+          String targetStringEquals) {
         queryParam1.value = sourceStringEquals;
-        queryParam2.value = targetStringEquals;
+        queryParam2.value = sourceIntEquals;
+        queryParam3.value = targetStringEquals;
       };
       queryT = query as Query<T>;
     } else {
-      final query = (store
-              .box<RelSourceEntityIndexed>()
-              .query(RelSourceEntityIndexed_.tString.equals(''))
-                ..link(RelSourceEntityIndexed_.obxRelTarget,
-                    RelTargetEntity_.name.equals('')))
+      final query = (store.box<RelSourceEntityIndexed>().query(
+              RelSourceEntityIndexed_.tString.equals('') &
+                  RelSourceEntityIndexed_.tLong.equals(0))
+            ..link(RelSourceEntityIndexed_.obxRelTarget,
+                RelTargetEntity_.name.equals('')))
           .build();
       final queryParam1 = query.param(RelSourceEntityIndexed_.tString);
-      final queryParam2 = query.param(RelTargetEntity_.name);
-      querySetParams = (String sourceStringEquals, String targetStringEquals) {
+      final queryParam2 = query.param(RelSourceEntityIndexed_.tLong);
+      final queryParam3 = query.param(RelTargetEntity_.name);
+      querySetParams = (String sourceStringEquals, int sourceIntEquals,
+          String targetStringEquals) {
         queryParam1.value = sourceStringEquals;
-        queryParam2.value = targetStringEquals;
+        queryParam2.value = sourceIntEquals;
+        queryParam3.value = targetStringEquals;
       };
       queryT = query as Query<T>;
     }
@@ -128,10 +134,10 @@ class ExecutorRel<T extends RelSourceEntity> extends ExecutorBaseRel<T> {
         assert(store.box<RelTargetEntity>().count() == relTargetCount);
       });
 
-  Future<List<T>> queryWithLinks(
-          String sourceStringEquals, String targetStringEquals) =>
+  Future<List<T>> queryWithLinks(String sourceStringEquals, int sourceIntEquals,
+          String targetStringEquals) =>
       Future.value(tracker.track('queryWithLinks', () {
-        querySetParams(sourceStringEquals, targetStringEquals);
+        querySetParams(sourceStringEquals, sourceIntEquals, targetStringEquals);
         return query.find();
       }));
 }

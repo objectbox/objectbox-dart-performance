@@ -206,6 +206,10 @@ class _MyHomePageState extends State<MyHomePage> {
           final relBench = await bench.createRelBenchmark();
           final relTargetsCount = 5;
           await relBench.insertData(count, relTargetsCount);
+          final distinctSourceStrings =
+              ExecutorBaseRel.distinctSourceStrings(count);
+
+          final resultCounts = List<int>.filled(2, -1);
 
           for (var i = 0; i < runs; i++) {
             final qStringValue = inserts[(count / runs * i).floor()].tString;
@@ -213,20 +217,29 @@ class _MyHomePageState extends State<MyHomePage> {
             assert(qStringMatching.length == 1);
 
             final relResults = await relBench.queryWithLinks(
-                'Source group #${i % 7}',
+                'Source group #${i % distinctSourceStrings}',
+                1,
                 'Target #${(i + 1) % relTargetsCount}');
             RangeError.checkValueInInterval(
                 relResults.length,
-                count / 5 ~/ 7 - 1,
-                count / 5 ~/ 7 + 1,
+                count / 5 ~/ distinctSourceStrings ~/ 2 - 1,
+                count / 5 ~/ distinctSourceStrings ~/ 2 + 1,
                 'queryWithLinks results length');
 
             await printResult('$_mode: ${i + 1}/$runs finished');
+
+            resultCounts[0] = qStringMatching.length;
+            resultCounts[1] = relResults.length;
           }
 
           _tracker.printTimes(
               avgOnly: true,
               functions: ['queryStringEquals', 'queryWithLinks']);
+
+          _print(<String>['', '']);
+          _print(<String>['', 'Count']);
+          _print(<String>['queryStringEquals', resultCounts[0].toString()]);
+          _print(<String>['queryWithLinks', resultCounts[1].toString()]);
 
           // just so that the test after benchmarks passes
           await bench.removeMany(inserts.map((e) => e.id).toList());
