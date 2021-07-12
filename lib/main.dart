@@ -69,6 +69,8 @@ enum DbEngine { ObjectBox, sqflite, Hive }
 
 enum Mode { CRUD, Queries }
 
+enum RunState { idle, running, stopping }
+
 class _MyHomePageState extends State<MyHomePage> {
   var _db = DbEngine.ObjectBox;
   var _mode = Mode.CRUD;
@@ -80,6 +82,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
   var _result = '';
   final _resultRows = <TableRow>[];
+  RunState _state = RunState.idle;
 
   void _print(List<String> columns) {
     setState(() {
@@ -132,10 +135,16 @@ class _MyHomePageState extends State<MyHomePage> {
 
   bool get indexed => _indexed && _db != DbEngine.Hive;
 
+  void _stopBenchmark() async => setState(() {
+        _result = 'Benchmark stopping...';
+        _state = RunState.stopping;
+      });
+
   void _runBenchmark() async {
     setState(() {
       _result = 'Benchmark starting...';
       _resultRows.clear();
+      _state = RunState.running;
     });
 
     final dbDir = (await appDir.future).createTempSync();
@@ -161,6 +170,21 @@ class _MyHomePageState extends State<MyHomePage> {
     await Future.delayed(Duration(seconds: 0)); // yield to re-render
   }
 
+  /// Waits for the given future to complete. Returns true if the benchmark
+  /// should continue or false if it was stopped by the user in the meantime.
+  Future<bool> awaitOrStop(Future future) async {
+    await Future.any([
+      future,
+      Future.microtask(() async {
+        while (_state == RunState.running) {
+          await Future.delayed(const Duration(milliseconds: 10));
+        }
+        return Future.value();
+      })
+    ]);
+    return Future.value(_state == RunState.running);
+  }
+
   Future<void> _runBenchmarkOn(ExecutorBase bench) async {
     final count = int.parse(_countController.value.text);
 
@@ -174,34 +198,42 @@ class _MyHomePageState extends State<MyHomePage> {
     try {
       switch (_mode) {
         case Mode.CRUD:
-          for (var i = 0; i < runs; i++) {
+          for (var i = 0; i < runs && _state == RunState.running; i++) {
             final inserts = bench.prepareData(count);
-            await bench.insertMany(inserts);
+            if (!await awaitOrStop(bench.insertMany(inserts))) {
+              break;
+            }
             final ids = inserts.map((e) => e.id).toList(growable: false);
             final idsShuffled = (ids.toList(growable: false))..shuffle();
             await bench.readMany(idsShuffled, '(random)');
             final itemsOptional = await bench.readMany(ids);
             final items = bench.allNotNull(itemsOptional);
             bench.changeValues(items);
-            await bench.updateMany(items);
+            if (!await awaitOrStop(bench.updateMany(items))) {
+              break;
+            }
             await bench.removeMany(ids);
 
             await printResult('$_mode: ${i + 1}/$runs finished');
           }
 
-          _tracker.printTimes(avgOnly: true, functions: [
-            'insertMany',
-            'readMany',
-            'readMany(random)',
-            'updateMany',
-            'removeMany',
-          ]);
+          if (_state == RunState.running) {
+            _tracker.printTimes(avgOnly: true, functions: [
+              'insertMany',
+              'readMany',
+              'readMany(random)',
+              'updateMany',
+              'removeMany',
+            ]);
+          }
           break;
 
         case Mode.Queries:
           await printResult('Preparing data...');
           final inserts = bench.prepareData(count);
-          await bench.insertMany(inserts);
+          if (!await awaitOrStop(bench.insertMany(inserts))) {
+            break;
+          }
 
           final relBench = await bench.createRelBenchmark();
           final relTargetsCount = 5;
@@ -211,7 +243,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
           final resultCounts = List<int>.filled(2, -1);
 
-          for (var i = 0; i < runs; i++) {
+          for (var i = 0; i < runs && _state == RunState.running; i++) {
             final qStringValue = inserts[(count / runs * i).floor()].tString;
             final qStringMatching = await bench.queryStringEquals(qStringValue);
             assert(qStringMatching.length == 1);
@@ -222,8 +254,8 @@ class _MyHomePageState extends State<MyHomePage> {
                 'Target #${(i + 1) % relTargetsCount}');
             RangeError.checkValueInInterval(
                 relResults.length,
-                count / 5 ~/ distinctSourceStrings ~/ 2 - 1,
-                count / 5 ~/ distinctSourceStrings ~/ 2 + 1,
+                count / relTargetsCount / distinctSourceStrings ~/ 2 - 1,
+                count / relTargetsCount / distinctSourceStrings ~/ 2 + 1,
                 'queryWithLinks results length');
 
             await printResult('$_mode: ${i + 1}/$runs finished');
@@ -232,29 +264,43 @@ class _MyHomePageState extends State<MyHomePage> {
             resultCounts[1] = relResults.length;
           }
 
-          _tracker.printTimes(
-              avgOnly: true,
-              functions: ['queryStringEquals', 'queryWithLinks']);
+          if (_state == RunState.running) {
+            _tracker.printTimes(
+                avgOnly: true,
+                functions: ['queryStringEquals', 'queryWithLinks']);
 
-          _print(<String>['', '']);
-          _print(<String>['', 'Count']);
-          _print(<String>['queryStringEquals', resultCounts[0].toString()]);
-          _print(<String>['queryWithLinks', resultCounts[1].toString()]);
+            _print(<String>['', '']);
+            _print(<String>['', 'Count']);
+            _print(<String>['queryStringEquals', resultCounts[0].toString()]);
+            _print(<String>['queryWithLinks', resultCounts[1].toString()]);
 
-          // just so that the test after benchmarks passes
-          await bench.removeMany(inserts.map((e) => e.id).toList());
+            // just so that the test after benchmarks passes
+            await bench.removeMany(inserts.map((e) => e.id).toList());
+          }
 
           break;
       }
     } catch (e) {
       setState(() {
         _result = "Benchmark failed: $e";
+        _state = RunState.idle;
       });
       return;
     }
 
     // Sanity check after the benchmark: subsequent runs must have same results.
     assert(await _testBenchmark(bench));
+
+    if (_state == RunState.stopping) {
+      setState(() {
+        _result = 'Benchmark stopped';
+        _resultRows.clear();
+      });
+    }
+
+    setState(() {
+      _state = RunState.idle;
+    });
   }
 
   Future<bool> _testBenchmark(ExecutorBase bench) async {
@@ -354,11 +400,23 @@ class _MyHomePageState extends State<MyHomePage> {
           ],
         )),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _runBenchmark,
-        tooltip: 'Start',
-        child: Icon(Icons.play_arrow),
-      ), // This trailing comma makes auto-formatting nicer for build methods.
+      floatingActionButton: _state == RunState.stopping
+          ? FloatingActionButton(
+              onPressed: () {},
+              tooltip: 'n/a',
+              child: Icon(Icons.hourglass_top),
+            )
+          : _state == RunState.running
+              ? FloatingActionButton(
+                  onPressed: _stopBenchmark,
+                  tooltip: 'Stop',
+                  child: Icon(Icons.stop),
+                )
+              : FloatingActionButton(
+                  onPressed: _runBenchmark,
+                  tooltip: 'Start',
+                  child: Icon(Icons.play_arrow),
+                ), // This trailing comma makes auto-formatting nicer for build methods.
     );
   }
 }
