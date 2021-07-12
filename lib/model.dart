@@ -1,5 +1,6 @@
 import 'package:objectbox/objectbox.dart';
 import 'package:hive/hive.dart';
+import 'package:isar/isar.dart' as isar;
 
 part 'model.g.dart';
 
@@ -29,6 +30,7 @@ abstract class TestEntity extends EntityWithSettableId {
 
 @Entity()
 @HiveType(typeId: 1)
+@isar.Collection()
 class TestEntityPlain implements TestEntity {
   @HiveField(0)
   int id;
@@ -48,6 +50,13 @@ class TestEntityPlain implements TestEntity {
 
   TestEntityPlain(this.id, this.tString, this.tInt, this.tLong, this.tDouble);
 
+  TestEntityPlain.forIsar()
+      : id = 0,
+        tString = '',
+        tInt = 0,
+        tLong = 0,
+        tDouble = 0;
+
   static TestEntityPlain fromMap(Map<String, dynamic> map) => TestEntityPlain(
       map['id'] ?? 0,
       map['tString'],
@@ -59,17 +68,20 @@ class TestEntityPlain implements TestEntity {
 // A separate entity for queried data so that indexes don't change CRUD results.
 @Entity()
 @HiveType(typeId: 2)
+@isar.Collection()
 class TestEntityIndexed implements TestEntity {
   @HiveField(0)
   int id;
 
   @Index()
   @HiveField(1)
+  @isar.Index()
   String tString;
 
   @Index()
   @Property(type: PropertyType.int)
   @HiveField(2)
+  @isar.Index()
   int tInt; // 32-bit
 
   @HiveField(3)
@@ -79,6 +91,13 @@ class TestEntityIndexed implements TestEntity {
   double tDouble;
 
   TestEntityIndexed(this.id, this.tString, this.tInt, this.tLong, this.tDouble);
+
+  TestEntityIndexed.forIsar()
+      : id = 0,
+        tString = '',
+        tInt = 0,
+        tLong = 0,
+        tDouble = 0;
 
   static TestEntityIndexed fromMap(Map<String, dynamic> map) =>
       TestEntityIndexed(map['id'] ?? 0, map['tString'], map['tInt'],

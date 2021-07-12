@@ -8,6 +8,7 @@ import 'package:path_provider/path_provider.dart';
 
 import 'executor.dart';
 import 'hive_executor.dart' as hive;
+import 'isar_sync_executor.dart' as isar_sync;
 import 'model.dart';
 import 'obx_executor.dart' as obx;
 import 'sqf_executor.dart' as sqf;
@@ -65,7 +66,7 @@ class MyHomePage extends StatefulWidget {
   _MyHomePageState createState() => _MyHomePageState();
 }
 
-enum DbEngine { ObjectBox, sqflite, Hive }
+enum DbEngine { ObjectBox, sqflite, Hive, IsarSync }
 
 enum Mode { CRUD, Queries }
 
@@ -121,6 +122,8 @@ class _MyHomePageState extends State<MyHomePage> {
             Directory(path.join(dbDir.path, 'bench.db')), _tracker);
       case DbEngine.Hive:
         return hive.Executor.create<T>(dbDir, _tracker);
+      case DbEngine.IsarSync:
+        return isar_sync.Executor.create<T>(dbDir, _tracker);
       // case 4:
       //   return hive_lazy.Executor.create<T>(dbDir, _tracker);
       // case 5:
