@@ -119,7 +119,6 @@ class ExecutorRel<T extends RelSourceEntity> extends ExecutorBaseRel<T> {
               targetStringEquals)
           .map((e) => e.id)
           .toSet();
-      print(matchingTargets);
       assert(matchingTargets.isNotEmpty);
       return _box.values
           .where((T o) =>
