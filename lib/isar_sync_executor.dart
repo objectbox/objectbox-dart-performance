@@ -27,10 +27,7 @@ class Executor<T extends TestEntity> extends ExecutorBase<T> {
         tracker.track(
           'insertMany',
           () {
-            for (int i = 0; i < items.length; i++) {
-              items[i].id = i + 1;
-            }
-
+            _assignIds(items);
             return _store.writeTxnSync(
               (isar) => _box.putAllSync(items),
             );
@@ -51,21 +48,66 @@ class Executor<T extends TestEntity> extends ExecutorBase<T> {
             () => _store.writeTxnSync((Isar isar) => _box.deleteAllSync(ids))),
       );
 
-  Future<List<T>> queryStringEquals(String val) async => indexed
-      ? tracker.trackAsync(
-          'queryStringEquals',
-          () => (_box as IsarCollection<TestEntityIndexed>)
+  Future<List<T>> queryStringEquals(String val) async => Future.value(indexed
+      ? tracker.track('queryStringEquals', () {
+          // Indexed queries must be case insensitive, this prevents comparison.
+          // See https://github.com/isar/isar#queries
+          assert(!ExecutorBase.caseSensitive);
+          return (_box as IsarCollection<TestEntityIndexed>)
               .where()
-              .filter()
               .tStringEqualTo(val)
-              .findAll(),
-        ) as Future<List<T>>
-      : tracker.trackAsync(
+              .findAllSync();
+        }) as List<T>
+      : tracker.track(
           'queryStringEquals',
           () => (_box as IsarCollection<TestEntityPlain>)
               .where()
               .filter()
-              .tStringEqualTo(val)
-              .findAll(),
-        ) as Future<List<T>>;
+              .tStringEqualTo(val, caseSensitive: ExecutorBase.caseSensitive)
+              .findAllSync(),
+        ) as List<T>);
+
+  Future<ExecutorBaseRel> createRelBenchmark() => Future.value(indexed
+      ? ExecutorRel<RelSourceEntityIndexed>._(tracker, _store)
+      : ExecutorRel<RelSourceEntityPlain>._(tracker, _store));
+}
+
+class ExecutorRel<T extends RelSourceEntity> extends ExecutorBaseRel<T> {
+  final Isar _store;
+  final IsarCollection<T> _box;
+  final IsarCollection<RelTargetEntity> _boxTarget;
+
+  ExecutorRel._(TimeTracker tracker, this._store)
+      : _box = _store.getCollection(T.toString()),
+        _boxTarget = _store.getCollection('RelTargetEntity'),
+        super(tracker);
+
+  Future<void> close() async => Future.value();
+
+  Future<void> insertData(int relSourceCount, int relTargetCount) async {
+    final targets = prepareDataTargets(relTargetCount);
+    _assignIds(targets);
+    _store.writeTxnSync((isar) => _boxTarget.putAllSync(targets));
+
+    final sources = prepareDataSources(relSourceCount, targets);
+    _assignIds(sources);
+    _store.writeTxnSync((isar) => _box.putAllSync(sources));
+
+    // TODO no count() available in isar yet?
+    // assert(_box.length == relSourceCount);
+    // assert(_boxTarget.length == relTargetCount);
+  }
+
+  Future<List<T>> queryWithLinks(String sourceStringEquals, int sourceIntEquals,
+      String targetStringEquals) {
+    // TODO implement once the model is properly generated
+    // see https://isar.dev/queries#links
+    return Future.error(UnimplementedError('queryWithLinks'));
+  }
+}
+
+void _assignIds<EntityT>(List<EntityWithSettableId> list) {
+  for (var i = 0; i < list.length; i++) {
+    list[i].id = i + 1;
+  }
 }

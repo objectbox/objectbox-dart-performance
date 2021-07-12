@@ -307,7 +307,18 @@ class _MyHomePageState extends State<MyHomePage> {
               Spacer(),
               DropdownButton(
                   value: _mode,
-                  items: enumDropDownItems(Mode.values),
+                  // TODO items: enumDropDownItems(Mode.values),
+                  //      Isar queries can't be evaluated yet because the model
+                  //      doesn't work relations.
+                  // Note: evaluating just stringEquals() isn't an option
+                  //      because it would be heavily optimized by the VM if
+                  //      it's the only function executed and wouldn't be
+                  //      comparable to other databases that execute other
+                  //      benchmarks in the same loop.
+                  items: enumDropDownItems(Mode.values
+                      .where((mode) =>
+                          _db != DbEngine.IsarSync || mode != Mode.Queries)
+                      .toList()),
                   onChanged: (Mode? value) => configure(_db, value!, _indexed)),
               Spacer(),
               Text('Index'),
