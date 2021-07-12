@@ -50,6 +50,7 @@ class TestEntityPlain implements TestEntity {
 
   TestEntityPlain(this.id, this.tString, this.tInt, this.tLong, this.tDouble);
 
+  // TODO remove later; isar v0.4.0 needs a "public zero-arg constructor"
   TestEntityPlain.forIsar()
       : id = 0,
         tString = '',
