@@ -1,5 +1,6 @@
-import 'package:objectbox/objectbox.dart';
 import 'package:hive/hive.dart';
+import 'package:isar/isar.dart' as isar;
+import 'package:objectbox/objectbox.dart';
 
 part 'model.g.dart';
 
@@ -29,6 +30,7 @@ abstract class TestEntity extends EntityWithSettableId {
 
 @Entity()
 @HiveType(typeId: 1)
+@isar.Collection()
 class TestEntityPlain implements TestEntity {
   @HiveField(0)
   int id;
@@ -48,6 +50,16 @@ class TestEntityPlain implements TestEntity {
 
   TestEntityPlain(this.id, this.tString, this.tInt, this.tLong, this.tDouble);
 
+  // TODO remove later; isar v0.4.0 needs a "public zero-arg constructor"
+  // NOTE: you also need to fix isar.g.dart after each generation to use this
+  // constructor.
+  TestEntityPlain.forIsar()
+      : id = 0,
+        tString = '',
+        tInt = 0,
+        tLong = 0,
+        tDouble = 0;
+
   static TestEntityPlain fromMap(Map<String, dynamic> map) => TestEntityPlain(
       map['id'] ?? 0,
       map['tString'],
@@ -59,17 +71,20 @@ class TestEntityPlain implements TestEntity {
 // A separate entity for queried data so that indexes don't change CRUD results.
 @Entity()
 @HiveType(typeId: 2)
+@isar.Collection()
 class TestEntityIndexed implements TestEntity {
   @HiveField(0)
   int id;
 
   @Index()
   @HiveField(1)
+  @isar.Index(indexType: isar.IndexType.value)
   String tString;
 
   @Index()
   @Property(type: PropertyType.int)
   @HiveField(2)
+  @isar.Index()
   int tInt; // 32-bit
 
   @HiveField(3)
@@ -79,6 +94,13 @@ class TestEntityIndexed implements TestEntity {
   double tDouble;
 
   TestEntityIndexed(this.id, this.tString, this.tInt, this.tLong, this.tDouble);
+
+  TestEntityIndexed.forIsar()
+      : id = 0,
+        tString = '',
+        tInt = 0,
+        tLong = 0,
+        tDouble = 0;
 
   static TestEntityIndexed fromMap(Map<String, dynamic> map) =>
       TestEntityIndexed(map['id'] ?? 0, map['tString'], map['tInt'],
@@ -94,6 +116,7 @@ abstract class RelSourceEntity extends EntityWithSettableId {
 
   int get tLong;
 
+  // for hive & sqflite
   int get relTargetId;
 
   static Map<String, dynamic> toMap(RelSourceEntity object) =>
@@ -107,6 +130,7 @@ abstract class RelSourceEntity extends EntityWithSettableId {
 
 @Entity()
 @HiveType(typeId: 3)
+@isar.Collection()
 class RelSourceEntityPlain implements RelSourceEntity {
   @HiveField(0)
   int id;
@@ -117,16 +141,28 @@ class RelSourceEntityPlain implements RelSourceEntity {
   @HiveField(2)
   final int tLong; // 64-bit
 
+  @isar.Ignore()
   final obxRelTarget = ToOne<RelTargetEntity>();
 
   @Transient()
   @HiveField(3)
+  @isar.Ignore()
   final int relTargetId;
 
+  final isarRelTarget = isar.IsarLink<RelTargetEntity>();
+
   RelSourceEntityPlain(this.id, this.tString, this.tLong,
-      [this.relTargetId = 0]) {
+      [RelTargetEntity? relTarget])
+      : relTargetId = relTarget?.id ?? 0 {
     obxRelTarget.targetId = relTargetId;
+    isarRelTarget.value = relTarget;
   }
+
+  RelSourceEntityPlain.forIsar()
+      : id = 0,
+        tString = '',
+        tLong = 0,
+        relTargetId = 0;
 
   static RelSourceEntityPlain fromMap(Map<String, dynamic> map) =>
       RelSourceEntityPlain(
@@ -135,27 +171,41 @@ class RelSourceEntityPlain implements RelSourceEntity {
 
 @Entity()
 @HiveType(typeId: 4)
+@isar.Collection()
 class RelSourceEntityIndexed implements RelSourceEntity {
   @HiveField(0)
   int id;
 
   @Index()
   @HiveField(1)
+  @isar.Index(indexType: isar.IndexType.value)
   final String tString;
 
   @HiveField(2)
   final int tLong; // 64-bit
 
+  @isar.Ignore()
   final obxRelTarget = ToOne<RelTargetEntity>();
 
   @Transient()
   @HiveField(3)
+  @isar.Ignore()
   final int relTargetId;
 
+  final isarRelTarget = isar.IsarLink<RelTargetEntity>();
+
   RelSourceEntityIndexed(this.id, this.tString, this.tLong,
-      [this.relTargetId = 0]) {
+      [RelTargetEntity? relTarget])
+      : relTargetId = relTarget?.id ?? 0 {
     obxRelTarget.targetId = relTargetId;
+    isarRelTarget.value = relTarget;
   }
+
+  RelSourceEntityIndexed.forIsar()
+      : id = 0,
+        tString = '',
+        tLong = 0,
+        relTargetId = 0;
 
   static RelSourceEntityIndexed fromMap(Map<String, dynamic> map) =>
       RelSourceEntityIndexed(
@@ -164,6 +214,7 @@ class RelSourceEntityIndexed implements RelSourceEntity {
 
 @Entity()
 @HiveType(typeId: 5)
+@isar.Collection()
 class RelTargetEntity extends EntityWithSettableId {
   @HiveField(0)
   int id;
@@ -172,6 +223,10 @@ class RelTargetEntity extends EntityWithSettableId {
   String name;
 
   RelTargetEntity(this.id, this.name);
+
+  RelTargetEntity.forIsar()
+      : id = 0,
+        name = '';
 
   static Map<String, dynamic> toMap(RelTargetEntity object) =>
       <String, dynamic>{
