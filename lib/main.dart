@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:math';
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
@@ -75,8 +76,9 @@ class _MyHomePageState extends State<MyHomePage> {
   var _db = DbEngine.ObjectBox;
   var _mode = Mode.CRUD;
   var _indexed = false;
-  final _countController = TextEditingController(text: '10000');
+  final _objectsController = TextEditingController(text: '10000');
   final _runsController = TextEditingController(text: '10');
+  final _operationsController = TextEditingController(text: '1000');
   late final TimeTracker _tracker = TimeTracker(_print);
   final appDir = Completer<Directory>();
 
@@ -186,20 +188,20 @@ class _MyHomePageState extends State<MyHomePage> {
   }
 
   Future<void> _runBenchmarkOn(ExecutorBase bench) async {
-    final count = int.parse(_countController.value.text);
+    final objectsCount = int.parse(_objectsController.value.text);
+    final runs = int.parse(_runsController.value.text);
 
     // Before we start to benchmark: verify the executor works as expected.
     // assert() makes this only run in debug mode
     assert(await _testBenchmark(bench));
 
     _tracker.clear();
-    final runs = int.parse(_runsController.value.text);
 
     try {
       switch (_mode) {
         case Mode.CRUD:
           for (var i = 0; i < runs && _state == RunState.running; i++) {
-            final inserts = bench.prepareData(count);
+            final inserts = bench.prepareData(objectsCount);
             if (!await awaitOrStop(bench.insertMany(inserts))) {
               break;
             }
@@ -229,33 +231,42 @@ class _MyHomePageState extends State<MyHomePage> {
           break;
 
         case Mode.Queries:
+          final random = Random();
+          final operationsCount = int.parse(_operationsController.value.text);
           await printResult('Preparing data...');
-          final inserts = bench.prepareData(count);
+          final inserts = bench.prepareData(objectsCount);
           if (!await awaitOrStop(bench.insertMany(inserts))) {
             break;
           }
 
           final relBench = await bench.createRelBenchmark();
           final relTargetsCount = 5;
-          await relBench.insertData(count, relTargetsCount);
+          await relBench.insertData(objectsCount, relTargetsCount);
           final distinctSourceStrings =
-              ExecutorBaseRel.distinctSourceStrings(count);
+              ExecutorBaseRel.distinctSourceStrings(objectsCount);
 
           final resultCounts = List<int>.filled(2, -1);
 
           for (var i = 0; i < runs && _state == RunState.running; i++) {
-            final qStringValue = inserts[(count / runs * i).floor()].tString;
-            final qStringMatching = await bench.queryStringEquals(qStringValue);
+            final qStringValues = List.generate(operationsCount,
+                (_) => inserts[random.nextInt(objectsCount)].tString,
+                growable: false);
+            final qStringMatching =
+                await bench.queryStringEquals(qStringValues);
             assert(qStringMatching.length == 1);
 
-            final relResults = await relBench.queryWithLinks(
-                'Source group #${i % distinctSourceStrings}',
-                1,
-                'Target #${(i + 1) % relTargetsCount}');
+            final qLinkConfigs = List.generate(
+                operationsCount,
+                (_) => ConfigQueryWithLinks(
+                    'Source group #${random.nextInt(distinctSourceStrings)}',
+                    1,
+                    'Target #${random.nextInt(relTargetsCount)}'),
+                growable: false);
+            final relResults = await relBench.queryWithLinks(qLinkConfigs);
             RangeError.checkValueInInterval(
                 relResults.length,
-                count / relTargetsCount / distinctSourceStrings ~/ 2 - 1,
-                count / relTargetsCount / distinctSourceStrings ~/ 2 + 1,
+                objectsCount / relTargetsCount / distinctSourceStrings ~/ 2 - 1,
+                objectsCount / relTargetsCount / distinctSourceStrings ~/ 2 + 1,
                 'queryWithLinks results length');
 
             await printResult('$_mode: ${i + 1}/$runs finished');
@@ -375,13 +386,23 @@ class _MyHomePageState extends State<MyHomePage> {
                   labelText: 'Runs',
                 ),
               )),
+              if (_mode == Mode.Queries) Spacer(),
+              if (_mode == Mode.Queries)
+                Expanded(
+                    child: TextField(
+                  keyboardType: TextInputType.number,
+                  controller: _operationsController,
+                  decoration: InputDecoration(
+                    labelText: 'Operations',
+                  ),
+                )),
               Spacer(),
               Expanded(
                   child: TextField(
                 keyboardType: TextInputType.number,
-                controller: _countController,
+                controller: _objectsController,
                 decoration: InputDecoration(
-                  labelText: 'Count',
+                  labelText: 'Objects',
                 ),
               )),
               Spacer(),
@@ -401,11 +422,7 @@ class _MyHomePageState extends State<MyHomePage> {
         )),
       ),
       floatingActionButton: _state == RunState.stopping
-          ? FloatingActionButton(
-              onPressed: () {},
-              tooltip: 'n/a',
-              child: Icon(Icons.hourglass_top),
-            )
+          ? null
           : _state == RunState.running
               ? FloatingActionButton(
                   onPressed: _stopBenchmark,

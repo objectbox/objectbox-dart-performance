@@ -3,6 +3,15 @@ import 'dart:math';
 import 'model.dart';
 import 'time_tracker.dart';
 
+class ConfigQueryWithLinks {
+  final String sourceStringEquals;
+  final int sourceIntEquals;
+  final String targetStringEquals;
+
+  ConfigQueryWithLinks(
+      this.sourceStringEquals, this.sourceIntEquals, this.targetStringEquals);
+}
+
 abstract class ExecutorBase<T extends TestEntity> {
   static const caseSensitive = true;
 
@@ -34,7 +43,8 @@ abstract class ExecutorBase<T extends TestEntity> {
 
   Future<void> removeMany(List<int> ids);
 
-  Future<List<T>> queryStringEquals(String value) => throw UnimplementedError();
+  Future<List<T>> queryStringEquals(List<String> val) =>
+      throw UnimplementedError();
 
   /// Verifies that the executor works as expected (returns proper results).
   Future<void> test({required int count, String? qString}) =>
@@ -55,7 +65,7 @@ abstract class ExecutorBase<T extends TestEntity> {
         await updateMany(items);
 
         if (qString != null) {
-          checkCount('query string', await queryStringEquals(qString), 1);
+          checkCount('query string', await queryStringEquals([qString]), 1);
         }
 
         checkCount('count before remove',
@@ -97,7 +107,6 @@ abstract class ExecutorBaseRel<T extends RelSourceEntity> {
 
   Future<void> insertData(int relSourceCount, int relTargetCount);
 
-  Future<List<T>> queryWithLinks(String sourceStringEquals, int sourceIntEquals,
-          String targetStringEquals) =>
+  Future<List<T>> queryWithLinks(List<ConfigQueryWithLinks> args) =>
       throw UnimplementedError();
 }

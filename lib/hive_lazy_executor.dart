@@ -6,6 +6,7 @@ import 'executor.dart';
 import 'time_tracker.dart';
 import 'model.dart';
 
+/// WARNING: outdated and unused
 class Executor<T extends TestEntity> extends ExecutorBase<T> {
   late final LazyBox<T> _box;
 
@@ -45,7 +46,7 @@ class Executor<T extends TestEntity> extends ExecutorBase<T> {
       });
 
   // not supported - there's no iterator
-  Future<List<T>> queryStringEquals(String val) => tracker.track(
+  Future<List<T>> queryStringEquals(List<String> val) => tracker.track(
       'queryStringEquals',
       () => Future.error('Hive does not support queries on lazy boxes'));
 }

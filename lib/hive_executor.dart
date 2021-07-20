@@ -53,15 +53,22 @@ class Executor<T extends TestEntity> extends ExecutorBase<T> {
       });
 
   // Hive doesn't have queries -> let's emulate
-  Future<List<T>> queryStringEquals(String val) {
-    if (!ExecutorBase.caseSensitive) val = val.toLowerCase();
-    return Future.value(tracker.track(
-        'queryStringEquals',
-        () => _box.values
+  Future<List<T>> queryStringEquals(List<String> values) {
+    if (!ExecutorBase.caseSensitive) {
+      values = values.map((e) => e.toLowerCase()).toList(growable: false);
+    }
+    return Future.value(tracker.track('queryStringEquals', () {
+      late List<T> result;
+      final length = values.length;
+      for (var i = 0; i < length; i++) {
+        result = _box.values
             .where((T object) => ExecutorBase.caseSensitive
-                ? object.tString == val
-                : object.tString.toLowerCase() == val)
-            .toList()));
+                ? object.tString == values[i]
+                : object.tString.toLowerCase() == values[i])
+            .toList();
+      }
+      return result;
+    }));
   }
 
   Future<ExecutorBaseRel> createRelBenchmark() => indexed
@@ -106,30 +113,37 @@ class ExecutorRel<T extends RelSourceEntity> extends ExecutorBaseRel<T> {
     assert(_boxTarget.length == relTargetCount);
   }
 
-  Future<List<T>> queryWithLinks(String sourceStringEquals, int sourceIntEquals,
-      String targetStringEquals) {
+  Future<List<T>> queryWithLinks(List<ConfigQueryWithLinks> args) {
     if (!ExecutorBase.caseSensitive) {
-      sourceStringEquals..toLowerCase();
-      targetStringEquals..toLowerCase();
+      args.forEach((config) {
+        config.sourceStringEquals..toLowerCase();
+        config.targetStringEquals..toLowerCase();
+      });
     }
+
     return Future.value(tracker.track('queryWithLinks', () {
-      final matchingTargets = _boxTarget.values
-          .where((RelTargetEntity o) =>
-              (ExecutorBase.caseSensitive ? o.name : o.name.toLowerCase()) ==
-              targetStringEquals)
-          .map((e) => e.id)
-          .toSet();
-      assert(matchingTargets.isNotEmpty);
-      return _box.values
-          .where((T o) =>
-              o.tLong == sourceIntEquals &&
-              matchingTargets
-                  .contains((o as RelSourceEntityPlain).relTargetId) &&
-              (ExecutorBase.caseSensitive
-                      ? o.tString
-                      : o.tString.toLowerCase()) ==
-                  sourceStringEquals)
-          .toList();
+      late List<T> result;
+      final length = args.length;
+      for (var i = 0; i < length; i++) {
+        final matchingTargets = _boxTarget.values
+            .where((RelTargetEntity o) =>
+                (ExecutorBase.caseSensitive ? o.name : o.name.toLowerCase()) ==
+                args[i].targetStringEquals)
+            .map((e) => e.id)
+            .toSet();
+        assert(matchingTargets.isNotEmpty);
+        result = _box.values
+            .where((T o) =>
+                o.tLong == args[i].sourceIntEquals &&
+                matchingTargets
+                    .contains((o as RelSourceEntityPlain).relTargetId) &&
+                (ExecutorBase.caseSensitive
+                        ? o.tString
+                        : o.tString.toLowerCase()) ==
+                    args[i].sourceStringEquals)
+            .toList();
+      }
+      return result;
     }));
   }
 }
