@@ -37,9 +37,8 @@ void main(List<String> arguments) async {
   for (var i = 0; i < runs; i++) {
     bench.insertMany(inserts);
     final ids = inserts.map((e) => e.id).toList(growable: false);
-    final items = await bench.readMany(ids);
-    bench.changeValues(bench.allNotNull(items));
-    bench.updateMany(items.map((e) => e!).toList(growable: false));
+    final items = await bench.readAll();
+    bench.updateMany(items);
     bench.removeMany(ids);
 
     print('${i + 1}/$runs finished');
@@ -48,7 +47,7 @@ void main(List<String> arguments) async {
   bench.close();
   tracker.printTimes(functions: [
     'insertMany',
-    'readMany',
+    'readAll',
     'updateMany',
     'removeMany',
   ]);

@@ -35,8 +35,8 @@ class Executor<T extends TestEntity> extends ExecutorBase<T> {
       () async => await _box.putAll(
           Map<int, T>.fromIterable(items, key: (o) => o.id, value: (o) => o)));
 
-  Future<List<T?>> readMany(List<int> ids, [String? benchmarkQualifier]) =>
-      tracker.trackAsync('readMany' + (benchmarkQualifier ?? ''),
+  Future<List<T?>> queryById(List<int> ids, [String? benchmarkQualifier]) =>
+      tracker.trackAsync('queryById' + (benchmarkQualifier ?? ''),
           () => Future.wait(ids.map(_box.get).toList()));
 
   Future<void> removeMany(List<int> ids) async =>

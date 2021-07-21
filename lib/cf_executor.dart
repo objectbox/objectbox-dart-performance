@@ -63,8 +63,8 @@ class Executor<T extends TestEntity> extends ExecutorBase<T> {
         await batch.commit();
       });
 
-  Future<List<T>> readMany(List<int> ids, [String? benchmarkQualifier]) =>
-      tracker.track('readMany' + (benchmarkQualifier ?? ''),
+  Future<List<T>> queryById(List<int> ids, [String? benchmarkQualifier]) =>
+      tracker.track('queryById' + (benchmarkQualifier ?? ''),
           // doesn't work, filters support a maximum of 10 elements
           // () async => (await _box.where('id', whereIn: ids).get())
           //     .docs

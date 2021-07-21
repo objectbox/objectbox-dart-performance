@@ -35,11 +35,13 @@ abstract class ExecutorBase<T extends TestEntity> {
   List<T> allNotNull(List<T?> items) =>
       items.map((e) => e!).toList(growable: false);
 
+  Future<List<T>> readAll() => throw UnimplementedError();
+
   Future<void> insertMany(List<T> items);
 
   Future<void> updateMany(List<T> items);
 
-  Future<List<T?>> readMany(List<int> ids, [String? benchmarkQualifier]);
+  Future<List<T?>> queryById(List<int> ids, [String? benchmarkQualifier]);
 
   Future<void> removeMany(List<int> ids);
 
@@ -58,8 +60,11 @@ abstract class ExecutorBase<T extends TestEntity> {
         final ids = inserts.map((e) => e.id).toList(growable: false);
         checkCount('insertMany assigns ids', ids.toSet(), count);
 
-        final items = allNotNull(await readMany(ids));
-        checkCount('readMany', items, count);
+        final items = allNotNull(await queryById(ids));
+        checkCount('queryById', items, count);
+
+        final itemsAll = await readAll();
+        checkCount('readAll', itemsAll, count);
 
         changeValues(items);
         await updateMany(items);
@@ -69,10 +74,10 @@ abstract class ExecutorBase<T extends TestEntity> {
         }
 
         checkCount('count before remove',
-            (await readMany(ids)).where((e) => e != null), count);
+            (await queryById(ids)).where((e) => e != null), count);
         await removeMany(ids);
         checkCount('count after remove',
-            (await readMany(ids)).where((e) => e != null), 0);
+            (await queryById(ids)).where((e) => e != null), 0);
       });
 
   Future<ExecutorBaseRel> createRelBenchmark() => throw UnimplementedError();

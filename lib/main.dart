@@ -94,8 +94,9 @@ class _MyHomePageState extends State<MyHomePage> {
             softWrap: false,
             style: TextStyle(
                 fontSize: 20,
-                fontWeight:
-                    _resultRows.isEmpty ? FontWeight.bold : FontWeight.normal),
+                fontWeight: (_resultRows.isEmpty || columns[i] == 'Count')
+                    ? FontWeight.bold
+                    : FontWeight.normal),
             textAlign: i == 0 ? TextAlign.left : TextAlign.right));
       }
       _resultRows.add(TableRow(children: cols));
@@ -206,10 +207,8 @@ class _MyHomePageState extends State<MyHomePage> {
               break;
             }
             final ids = inserts.map((e) => e.id).toList(growable: false);
-            final idsShuffled = (ids.toList(growable: false))..shuffle();
-            await bench.readMany(idsShuffled, '(random)');
-            final itemsOptional = await bench.readMany(ids);
-            final items = bench.allNotNull(itemsOptional);
+            final items = await bench.readAll();
+            assert(items.length == objectsCount);
             bench.changeValues(items);
             if (!await awaitOrStop(bench.updateMany(items))) {
               break;
@@ -222,8 +221,7 @@ class _MyHomePageState extends State<MyHomePage> {
           if (_state == RunState.running) {
             _tracker.printTimes(avgOnly: true, functions: [
               'insertMany',
-              'readMany',
-              'readMany(random)',
+              'readAll',
               'updateMany',
               'removeMany',
             ]);
@@ -238,6 +236,7 @@ class _MyHomePageState extends State<MyHomePage> {
           if (!await awaitOrStop(bench.insertMany(inserts))) {
             break;
           }
+          final ids = inserts.map((e) => e.id).toList(growable: false);
 
           final relBench = await bench.createRelBenchmark();
           final relTargetsCount = 5;
@@ -245,7 +244,14 @@ class _MyHomePageState extends State<MyHomePage> {
           final distinctSourceStrings =
               ExecutorBaseRel.distinctSourceStrings(objectsCount);
 
-          final resultCounts = List<int>.filled(2, -1);
+          final resultCounts = List<int>.filled(3, -1);
+
+          final randomSlice = (List<int> list, int length) {
+            final start = random.nextInt(list.length - length);
+            final result = list.sublist(start, start + length);
+            assert(result.length == length);
+            return result;
+          };
 
           for (var i = 0; i < runs && _state == RunState.running; i++) {
             final qStringValues = List.generate(operationsCount,
@@ -269,21 +275,33 @@ class _MyHomePageState extends State<MyHomePage> {
                 objectsCount / relTargetsCount / distinctSourceStrings ~/ 2 + 1,
                 'queryWithLinks results length');
 
+            final idsShuffled = (ids.toList(growable: false))..shuffle(random);
+            final qByIdItems = await bench.queryById(
+                randomSlice(idsShuffled, operationsCount), '(random)');
+            final qByIdItems2 =
+                await bench.queryById(randomSlice(ids, operationsCount));
+            assert(qByIdItems.length == qByIdItems2.length);
+
             await printResult('$_mode: ${i + 1}/$runs finished');
 
             resultCounts[0] = qStringMatching.length;
             resultCounts[1] = relResults.length;
+            resultCounts[2] = qByIdItems.length;
           }
 
           if (_state == RunState.running) {
-            _tracker.printTimes(
-                avgOnly: true,
-                functions: ['queryStringEquals', 'queryWithLinks']);
+            _tracker.printTimes(avgOnly: true, functions: [
+              'queryStringEquals',
+              'queryWithLinks',
+              'queryById',
+              'queryById(random)',
+            ]);
 
             _print(<String>['', '']);
             _print(<String>['', 'Count']);
             _print(<String>['queryStringEquals', resultCounts[0].toString()]);
             _print(<String>['queryWithLinks', resultCounts[1].toString()]);
+            _print(<String>['queryById', resultCounts[2].toString()]);
 
             // just so that the test after benchmarks passes
             await bench.removeMany(inserts.map((e) => e.id).toList());
