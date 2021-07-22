@@ -39,33 +39,48 @@ class Executor<T extends TestEntity> extends ExecutorBase<T> {
       'updateMany',
       () => _store.writeTxnSync((isar) => _box.putAllSync(items))));
 
-  Future<List<T?>> readMany(List<int> ids, [String? benchmarkQualifier]) =>
-      Future.value(tracker.track(
-          'readMany' + (benchmarkQualifier ?? ''), () => _box.getAllSync(ids)));
+  // TODO currently missing in isar (v0.4.0)
+  // Future<List<T>> readAll() =>
+  //     Future.value(tracker.track('readAll', () => _box.getAllSync()));
+
+  Future<List<T?>> queryById(List<int> ids, [String? benchmarkQualifier]) =>
+      Future.value(tracker.track('queryById' + (benchmarkQualifier ?? ''),
+          () => _box.getAllSync(ids)));
 
   Future<void> removeMany(List<int> ids) => Future.value(
         tracker.track('removeMany',
             () => _store.writeTxnSync((Isar isar) => _box.deleteAllSync(ids))),
       );
 
-  Future<List<T>> queryStringEquals(String val) async => Future.value(indexed
-      ? tracker.track('queryStringEquals', () {
-          // Indexed queries must be case insensitive, this prevents comparison.
-          // See https://github.com/isar/isar#queries
-          assert(!ExecutorBase.caseSensitive);
-          return (_box as IsarCollection<TestEntityIndexed>)
-              .where()
-              .tStringEqualTo(val)
-              .findAllSync();
-        }) as List<T>
-      : tracker.track(
-          'queryStringEquals',
-          () => (_box as IsarCollection<TestEntityPlain>)
-              .where()
-              .filter()
-              .tStringEqualTo(val, caseSensitive: ExecutorBase.caseSensitive)
-              .findAllSync(),
-        ) as List<T>);
+  Future<List<T>> queryStringEquals(List<String> values) async =>
+      Future.value(indexed
+          ? tracker.track('queryStringEquals', () {
+              // Indexed queries must be case insensitive, this prevents comparison.
+              // See https://github.com/isar/isar#queries
+              assert(!ExecutorBase.caseSensitive);
+              late List<TestEntityIndexed> result;
+              final length = values.length;
+              for (var i = 0; i < length; i++) {
+                result = (_box as IsarCollection<TestEntityIndexed>)
+                    .where()
+                    .tStringEqualTo(values[i])
+                    .findAllSync();
+              }
+              return result;
+            }) as List<T>
+          : tracker.track('queryStringEquals', () {
+              late List<TestEntityPlain> result;
+              final length = values.length;
+              for (var i = 0; i < length; i++) {
+                result = (_box as IsarCollection<TestEntityPlain>)
+                    .where()
+                    .filter()
+                    .tStringEqualTo(values[i],
+                        caseSensitive: ExecutorBase.caseSensitive)
+                    .findAllSync();
+              }
+              return result;
+            }) as List<T>);
 
   Future<ExecutorBaseRel> createRelBenchmark() => Future.value(indexed
       ? ExecutorRel<RelSourceEntityIndexed>._(tracker, _store)
@@ -98,8 +113,7 @@ class ExecutorRel<T extends RelSourceEntity> extends ExecutorBaseRel<T> {
     // assert(_boxTarget.length == relTargetCount);
   }
 
-  Future<List<T>> queryWithLinks(String sourceStringEquals, int sourceIntEquals,
-      String targetStringEquals) {
+  Future<List<T>> queryWithLinks(List<ConfigQueryWithLinks> args) {
     // TODO implement once the model is properly generated
     // see https://isar.dev/queries#links
     return Future.error(UnimplementedError('queryWithLinks'));
