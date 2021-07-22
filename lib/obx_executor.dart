@@ -52,18 +52,28 @@ class Executor<T extends TestEntity> extends ExecutorBase<T> {
   Future<void> updateMany(List<T> items) =>
       Future.value(tracker.track('updateMany', () => box.putMany(items)));
 
-  Future<List<T?>> readMany(List<int> ids, [String? benchmarkQualifier]) =>
+  Future<List<T>> readAll() =>
+      Future.value(tracker.track('readAll', () => box.getAll()));
+
+  Future<List<T?>> queryById(List<int> ids, [String? benchmarkQualifier]) =>
       Future.value(tracker.track(
-          'readMany' + (benchmarkQualifier ?? ''), () => box.getMany(ids)));
+          'queryById' + (benchmarkQualifier ?? ''), () => box.getMany(ids)));
 
   Future<void> removeMany(List<int> ids) =>
       Future.value(tracker.track('removeMany', () => box.removeMany(ids)));
 
-  Future<List<T>> queryStringEquals(String val) =>
-      Future.value(tracker.track('queryStringEquals', () {
-        queryStringEqSetValue(val);
-        return queryStringEq.find();
-      }));
+  Future<List<T>> queryStringEquals(List<String> values) =>
+      Future.value(tracker.track(
+          'queryStringEquals',
+          () => store.runInTransaction(TxMode.read, () {
+                late List<T> result;
+                final length = values.length;
+                for (var i = 0; i < length; i++) {
+                  queryStringEqSetValue(values[i]);
+                  result = queryStringEq.find();
+                }
+                return result;
+              })));
 
   Future<ExecutorBaseRel> createRelBenchmark() => Future.value(indexed
       ? ExecutorRel<RelSourceEntityIndexed>(store, tracker)
@@ -134,10 +144,17 @@ class ExecutorRel<T extends RelSourceEntity> extends ExecutorBaseRel<T> {
         assert(store.box<RelTargetEntity>().count() == relTargetCount);
       });
 
-  Future<List<T>> queryWithLinks(String sourceStringEquals, int sourceIntEquals,
-          String targetStringEquals) =>
-      Future.value(tracker.track('queryWithLinks', () {
-        querySetParams(sourceStringEquals, sourceIntEquals, targetStringEquals);
-        return query.find();
-      }));
+  Future<List<T>> queryWithLinks(List<ConfigQueryWithLinks> args) =>
+      Future.value(tracker.track(
+          'queryWithLinks',
+          () => store.runInTransaction(TxMode.read, () {
+                late List<T> result;
+                final length = args.length;
+                for (var i = 0; i < length; i++) {
+                  querySetParams(args[i].sourceStringEquals,
+                      args[i].sourceIntEquals, args[i].targetStringEquals);
+                  result = query.find();
+                }
+                return result;
+              })));
 }

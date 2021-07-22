@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:math';
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
@@ -70,17 +71,21 @@ enum DbEngine { ObjectBox, sqflite, Hive, IsarSync }
 
 enum Mode { CRUD, Queries }
 
+enum RunState { idle, running, stopping }
+
 class _MyHomePageState extends State<MyHomePage> {
   var _db = DbEngine.ObjectBox;
   var _mode = Mode.CRUD;
   var _indexed = false;
-  final _countController = TextEditingController(text: '10000');
+  final _objectsController = TextEditingController(text: '10000');
   final _runsController = TextEditingController(text: '10');
+  final _operationsController = TextEditingController(text: '1000');
   late final TimeTracker _tracker = TimeTracker(_print);
   final appDir = Completer<Directory>();
 
   var _result = '';
   final _resultRows = <TableRow>[];
+  RunState _state = RunState.idle;
 
   void _print(List<String> columns) {
     setState(() {
@@ -90,8 +95,9 @@ class _MyHomePageState extends State<MyHomePage> {
             softWrap: false,
             style: TextStyle(
                 fontSize: 20,
-                fontWeight:
-                    _resultRows.isEmpty ? FontWeight.bold : FontWeight.normal),
+                fontWeight: (_resultRows.isEmpty || columns[i] == 'Count')
+                    ? FontWeight.bold
+                    : FontWeight.normal),
             textAlign: i == 0 ? TextAlign.left : TextAlign.right));
       }
       _resultRows.add(TableRow(children: cols));
@@ -135,10 +141,16 @@ class _MyHomePageState extends State<MyHomePage> {
 
   bool get indexed => _indexed && _db != DbEngine.Hive;
 
+  void _stopBenchmark() async => setState(() {
+        _result = 'Benchmark stopping...';
+        _state = RunState.stopping;
+      });
+
   void _runBenchmark() async {
     setState(() {
       _result = 'Benchmark starting...';
       _resultRows.clear();
+      _state = RunState.running;
     });
 
     final dbDir = (await appDir.future).createTempSync();
@@ -164,100 +176,163 @@ class _MyHomePageState extends State<MyHomePage> {
     await Future.delayed(Duration(seconds: 0)); // yield to re-render
   }
 
+  /// Waits for the given future to complete. Returns true if the benchmark
+  /// should continue or false if it was stopped by the user in the meantime.
+  Future<bool> awaitOrStop(Future future) async {
+    await Future.any([
+      future,
+      Future.microtask(() async {
+        while (_state == RunState.running) {
+          await Future.delayed(const Duration(milliseconds: 10));
+        }
+        return Future.value();
+      })
+    ]);
+    return Future.value(_state == RunState.running);
+  }
+
   Future<void> _runBenchmarkOn(ExecutorBase bench) async {
-    final count = int.parse(_countController.value.text);
+    final objectsCount = int.parse(_objectsController.value.text);
+    final runs = int.parse(_runsController.value.text);
 
     // Before we start to benchmark: verify the executor works as expected.
     // assert() makes this only run in debug mode
     assert(await _testBenchmark(bench));
 
     _tracker.clear();
-    final runs = int.parse(_runsController.value.text);
 
     try {
       switch (_mode) {
         case Mode.CRUD:
-          for (var i = 0; i < runs; i++) {
-            final inserts = bench.prepareData(count);
-            await bench.insertMany(inserts);
+          for (var i = 0; i < runs && _state == RunState.running; i++) {
+            final inserts = bench.prepareData(objectsCount);
+            if (!await awaitOrStop(bench.insertMany(inserts))) {
+              break;
+            }
             final ids = inserts.map((e) => e.id).toList(growable: false);
-            final idsShuffled = (ids.toList(growable: false))..shuffle();
-            await bench.readMany(idsShuffled, '(random)');
-            final itemsOptional = await bench.readMany(ids);
-            final items = bench.allNotNull(itemsOptional);
+            final items = await bench.readAll();
+            assert(items.length == objectsCount);
             bench.changeValues(items);
-            await bench.updateMany(items);
+            if (!await awaitOrStop(bench.updateMany(items))) {
+              break;
+            }
             await bench.removeMany(ids);
 
             await printResult('$_mode: ${i + 1}/$runs finished');
           }
 
-          _tracker.printTimes(avgOnly: true, functions: [
-            'insertMany',
-            'readMany',
-            'readMany(random)',
-            'updateMany',
-            'removeMany',
-          ]);
+          if (_state == RunState.running) {
+            _tracker.printTimes(avgOnly: true, functions: [
+              'insertMany',
+              'readAll',
+              'updateMany',
+              'removeMany',
+            ]);
+          }
           break;
 
         case Mode.Queries:
+          final random = Random();
+          final operationsCount = int.parse(_operationsController.value.text);
           await printResult('Preparing data...');
-          final inserts = bench.prepareData(count);
-          await bench.insertMany(inserts);
+          final inserts = bench.prepareData(objectsCount);
+          if (!await awaitOrStop(bench.insertMany(inserts))) {
+            break;
+          }
+          final ids = inserts.map((e) => e.id).toList(growable: false);
 
           final relBench = await bench.createRelBenchmark();
           final relTargetsCount = 5;
-          await relBench.insertData(count, relTargetsCount);
+          await relBench.insertData(objectsCount, relTargetsCount);
           final distinctSourceStrings =
-              ExecutorBaseRel.distinctSourceStrings(count);
+              ExecutorBaseRel.distinctSourceStrings(objectsCount);
 
-          final resultCounts = List<int>.filled(2, -1);
+          final resultCounts = List<int>.filled(3, -1);
 
-          for (var i = 0; i < runs; i++) {
-            final qStringValue = inserts[(count / runs * i).floor()].tString;
-            final qStringMatching = await bench.queryStringEquals(qStringValue);
+          final randomSlice = (List<int> list, int length) {
+            final start = random.nextInt(list.length - length);
+            final result = list.sublist(start, start + length);
+            assert(result.length == length);
+            return result;
+          };
+
+          for (var i = 0; i < runs && _state == RunState.running; i++) {
+            final qStringValues = List.generate(operationsCount,
+                (_) => inserts[random.nextInt(objectsCount)].tString,
+                growable: false);
+            final qStringMatching =
+                await bench.queryStringEquals(qStringValues);
             assert(qStringMatching.length == 1);
 
-            final relResults = await relBench.queryWithLinks(
-                'Source group #${i % distinctSourceStrings}',
-                1,
-                'Target #${(i + 1) % relTargetsCount}');
+            final qLinkConfigs = List.generate(
+                operationsCount,
+                (_) => ConfigQueryWithLinks(
+                    'Source group #${random.nextInt(distinctSourceStrings)}',
+                    1,
+                    'Target #${random.nextInt(relTargetsCount)}'),
+                growable: false);
+            final relResults = await relBench.queryWithLinks(qLinkConfigs);
             RangeError.checkValueInInterval(
                 relResults.length,
-                count / 5 ~/ distinctSourceStrings ~/ 2 - 1,
-                count / 5 ~/ distinctSourceStrings ~/ 2 + 1,
+                objectsCount / relTargetsCount / distinctSourceStrings ~/ 2 - 1,
+                objectsCount / relTargetsCount / distinctSourceStrings ~/ 2 + 1,
                 'queryWithLinks results length');
+
+            final idsShuffled = (ids.toList(growable: false))..shuffle(random);
+            final qByIdItems = await bench.queryById(
+                randomSlice(idsShuffled, operationsCount), '(random)');
+            final qByIdItems2 =
+                await bench.queryById(randomSlice(ids, operationsCount));
+            assert(qByIdItems.length == qByIdItems2.length);
 
             await printResult('$_mode: ${i + 1}/$runs finished');
 
             resultCounts[0] = qStringMatching.length;
             resultCounts[1] = relResults.length;
+            resultCounts[2] = qByIdItems.length;
           }
 
-          _tracker.printTimes(
-              avgOnly: true,
-              functions: ['queryStringEquals', 'queryWithLinks']);
+          if (_state == RunState.running) {
+            _tracker.printTimes(avgOnly: true, functions: [
+              'queryStringEquals',
+              'queryWithLinks',
+              'queryById',
+              'queryById(random)',
+            ]);
 
-          _print(<String>['', '']);
-          _print(<String>['', 'Count']);
-          _print(<String>['queryStringEquals', resultCounts[0].toString()]);
-          _print(<String>['queryWithLinks', resultCounts[1].toString()]);
+            _print(<String>['', '']);
+            _print(<String>['', 'Count']);
+            _print(<String>['queryStringEquals', resultCounts[0].toString()]);
+            _print(<String>['queryWithLinks', resultCounts[1].toString()]);
+            _print(<String>['queryById', resultCounts[2].toString()]);
 
-          // just so that the test after benchmarks passes
-          await bench.removeMany(inserts.map((e) => e.id).toList());
+            // just so that the test after benchmarks passes
+            await bench.removeMany(inserts.map((e) => e.id).toList());
+          }
 
           break;
       }
     } catch (e) {
       setState(() {
         _result = "Benchmark failed: $e";
+        _state = RunState.idle;
       });
       return;
     }
 
     // Sanity check after the benchmark: subsequent runs must have same results.
     assert(await _testBenchmark(bench));
+
+    if (_state == RunState.stopping) {
+      setState(() {
+        _result = 'Benchmark stopped';
+        _resultRows.clear();
+      });
+    }
+
+    setState(() {
+      _state = RunState.idle;
+    });
   }
 
   Future<bool> _testBenchmark(ExecutorBase bench) async {
@@ -343,13 +418,23 @@ class _MyHomePageState extends State<MyHomePage> {
                   labelText: 'Runs',
                 ),
               )),
+              if (_mode == Mode.Queries) Spacer(),
+              if (_mode == Mode.Queries)
+                Expanded(
+                    child: TextField(
+                  keyboardType: TextInputType.number,
+                  controller: _operationsController,
+                  decoration: InputDecoration(
+                    labelText: 'Operations',
+                  ),
+                )),
               Spacer(),
               Expanded(
                   child: TextField(
                 keyboardType: TextInputType.number,
-                controller: _countController,
+                controller: _objectsController,
                 decoration: InputDecoration(
-                  labelText: 'Count',
+                  labelText: 'Objects',
                 ),
               )),
               Spacer(),
@@ -368,11 +453,19 @@ class _MyHomePageState extends State<MyHomePage> {
           ],
         )),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _runBenchmark,
-        tooltip: 'Start',
-        child: Icon(Icons.play_arrow),
-      ), // This trailing comma makes auto-formatting nicer for build methods.
+      floatingActionButton: _state == RunState.stopping
+          ? null
+          : _state == RunState.running
+              ? FloatingActionButton(
+                  onPressed: _stopBenchmark,
+                  tooltip: 'Stop',
+                  child: Icon(Icons.stop),
+                )
+              : FloatingActionButton(
+                  onPressed: _runBenchmark,
+                  tooltip: 'Start',
+                  child: Icon(Icons.play_arrow),
+                ), // This trailing comma makes auto-formatting nicer for build methods.
     );
   }
 }

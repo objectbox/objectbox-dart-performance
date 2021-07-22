@@ -63,24 +63,34 @@ class Executor<T extends TestEntity> extends ExecutorBase<T> {
         await tx.commit();
       });
 
-  Future<List<T>> _query<T>(
+  Future<List<T>> _query<T>(DatabaseExecutor db,
           T Function(Map<String, dynamic>) reader, String where,
           [List<Object?>? whereArgs]) async =>
-      (await _db.query(_table, where: where, whereArgs: whereArgs))
+      (await db.query(_table, where: where, whereArgs: whereArgs))
           .map(reader)
           .toList();
 
-  Future<List<T?>> readMany(List<int> ids, [String? benchmarkQualifier]) =>
-      tracker.trackAsync('readMany' + (benchmarkQualifier ?? ''),
-          () async => await _query(_fromMap, 'id in (${ids.join(',')})'));
+  Future<List<T>> readAll() => tracker.trackAsync(
+      'readAll', () async => (await _db.query(_table)).map(_fromMap).toList());
+
+  Future<List<T?>> queryById(List<int> ids, [String? benchmarkQualifier]) =>
+      tracker.trackAsync('queryById' + (benchmarkQualifier ?? ''),
+          () async => await _query(_db, _fromMap, 'id in (${ids.join(',')})'));
 
   Future<void> removeMany(List<int> ids) async => tracker.trackAsync(
       'removeMany',
       () async => await _db.delete(_table, where: 'id in (${ids.join(',')})'));
 
-  Future<List<T>> queryStringEquals(String val) => tracker.trackAsync(
+  Future<List<T>> queryStringEquals(List<String> values) => tracker.trackAsync(
       'queryStringEquals',
-      () async => await _query(_fromMap, 'tString = ?', [val]));
+      () async => _db.transaction((txn) async {
+            late List<T> result;
+            final length = values.length;
+            for (var i = 0; i < length; i++) {
+              result = await _query(txn, _fromMap, 'tString = ?', [values[i]]);
+            }
+            return result;
+          }));
 
   Future<ExecutorBaseRel> createRelBenchmark() => indexed
       ? ExecutorRel.create<RelSourceEntityIndexed>(tracker, _db)
@@ -142,17 +152,27 @@ class ExecutorRel<T extends RelSourceEntity> extends ExecutorBaseRel<T> {
     await _insertMany(_db, sources, RelSourceEntity.toMap);
   }
 
-  Future<List<T>> queryWithLinks(String sourceStringEquals, int sourceIntEquals,
-          String targetStringEquals) async =>
+  Future<List<T>> queryWithLinks(List<ConfigQueryWithLinks> args) async =>
       tracker.trackAsync(
           'queryWithLinks',
-          () async => (await _db.rawQuery(
-                  'SELECT $_table.* FROM $_table '
-                  'INNER JOIN $_tableTarget ON $_table.relTargetId = $_tableTarget.id '
-                  'WHERE $_table.tString = ? AND $_table.tLong = ? AND $_tableTarget.name = ?',
-                  [sourceStringEquals, sourceIntEquals, targetStringEquals]))
-              .map(_fromMap)
-              .toList());
+          () async => _db.transaction((txn) async {
+                late List<T> result;
+                final length = args.length;
+                for (var i = 0; i < length; i++) {
+                  result = (await txn.rawQuery(
+                          'SELECT $_table.* FROM $_table '
+                          'INNER JOIN $_tableTarget ON $_table.relTargetId = $_tableTarget.id '
+                          'WHERE $_table.tString = ? AND $_table.tLong = ? AND $_tableTarget.name = ?',
+                          [
+                        args[i].sourceStringEquals,
+                        args[i].sourceIntEquals,
+                        args[i].targetStringEquals
+                      ]))
+                      .map(_fromMap)
+                      .toList();
+                }
+                return result;
+              }));
 }
 
 Future<void> _insertMany<T extends EntityWithSettableId>(
