@@ -22,11 +22,14 @@ dependencies:
   hive: ^2.0.4
   firebase_core: ^1.1.0
   cloud_firestore: ^2.1.0
+  isar: ^0.4.0
+  isar_flutter_libs: ^0.4.0
 
 dev_dependencies:
   objectbox_generator: any
   build_runner: any
   hive_generator: any
+  isar_generator: ^0.4.0
 
 #dependency_overrides:
 #  objectbox:

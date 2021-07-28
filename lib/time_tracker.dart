@@ -60,16 +60,16 @@ class TimeTracker {
         _print([fn, avg]);
       } else {
         final timesCols =
-            _times[fn]!.map((d) => d.inMicroseconds.toDouble() / 1000);
+            _times[fn]?.map((d) => d.inMicroseconds.toDouble() / 1000) ?? [];
         _print([fn, _count(fn), avg, ...timesCols]);
       }
     }
   }
 
-  int _count(String fn) => _times[fn]!.length;
+  int _count(String fn) => _times[fn]?.length ?? 0;
 
   int _sum(String fn) =>
-      _times[fn]!.map((d) => d.inMicroseconds).reduce((v, e) => v + e);
+      _times[fn]?.map((d) => d.inMicroseconds).reduce((v, e) => v + e) ?? 0;
 
   double averageMs(String fn) =>
       _sum(fn).toDouble() / _count(fn).toDouble() / 1000;
