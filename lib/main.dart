@@ -243,7 +243,8 @@ class _MyHomePageState extends State<MyHomePage> {
           final ids = inserts.map((e) => e.id).toList(growable: false);
 
           final relBench = await bench.createRelBenchmark();
-          final relTargetsCount = 5;
+          // Target entity count is 10% of source entity count
+          final relTargetsCount = max(1, objectsCount ~/ 10);
           await relBench.insertData(objectsCount, relTargetsCount);
           final distinctSourceStrings =
               ExecutorBaseRel.distinctSourceStrings(objectsCount);
