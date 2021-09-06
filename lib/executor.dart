@@ -95,7 +95,7 @@ abstract class ExecutorBaseRel<T extends RelSourceEntity> {
 
   bool get indexed => T == RelSourceEntityIndexed;
 
-  // ~ 0.1 percent of the total number of objects
+  // ~ 1 percent of the total number of objects
   static int distinctSourceStrings(int objectCount) =>
       max(1, objectCount ~/ 100 - 1);
 
