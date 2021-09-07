@@ -95,9 +95,11 @@ abstract class ExecutorBaseRel<T extends RelSourceEntity> {
 
   bool get indexed => T == RelSourceEntityIndexed;
 
-  // ~ 1 percent of the total number of objects
-  static int distinctSourceStrings(int objectCount) =>
-      max(1, objectCount ~/ 100 - 1);
+  // every 9th source has the same target,
+  // every other source has int 1,
+  // so to ensure all combinations of target, source group and int exist
+  // should never be a divisor of 9 or even
+  static int distinctSourceStrings(int objectCount) => 5;
 
   List<T> prepareDataSources(int count, List<RelTargetEntity> targets) =>
       List.generate(count, (i) {
