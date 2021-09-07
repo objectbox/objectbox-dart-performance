@@ -10,5 +10,7 @@ with `Example.forIsar()` calls.
 
 ## Running
 
-To run in release mode with Android Studio, edit `main.dart` run configuration 
-and add `--release`to "Additional run args".
+To run in release mode with Android Studio connect a device or start an emulator, then
+Run > Flutter Run 'main.dart' in Release Mode
+
+This will edit the `main.dart` run configuration and add `--release`to "Additional run args".
