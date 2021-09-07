@@ -250,7 +250,8 @@ class _MyHomePageState extends State<MyHomePage> {
           final resultCounts = List<int>.filled(3, -1);
 
           final randomSlice = (List<int> list, int length) {
-            final start = random.nextInt(list.length - length);
+            final start = list.length == length
+                ? 0 : random.nextInt(list.length - length);
             final result = list.sublist(start, start + length);
             assert(result.length == length);
             return result;
@@ -279,10 +280,11 @@ class _MyHomePageState extends State<MyHomePage> {
                 'queryWithLinks results length');
 
             final idsShuffled = (ids.toList(growable: false))..shuffle(random);
+            final randomSliceLength = min(ids.length, operationsCount);
             final qByIdItems = await bench.queryById(
-                randomSlice(idsShuffled, operationsCount), '(random)');
+                randomSlice(idsShuffled, randomSliceLength), '(random)');
             final qByIdItems2 =
-                await bench.queryById(randomSlice(ids, operationsCount));
+                await bench.queryById(randomSlice(ids, randomSliceLength));
             assert(qByIdItems.length == qByIdItems2.length);
 
             await printResult('$_mode: ${i + 1}/$runs finished');
