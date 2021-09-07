@@ -243,11 +243,14 @@ class _MyHomePageState extends State<MyHomePage> {
           final ids = inserts.map((e) => e.id).toList(growable: false);
 
           final relBench = await bench.createRelBenchmark();
-          // Up to 10 sources have the same target
-          final relTargetsCount = max(1, objectsCount ~/ 10);
+          // About 9 sources have the same target
+          // Ensure target count is uneven to not align with odd/even int values.
+          final targetCount = objectsCount ~/ 10;
+          final relTargetsCount = max(1, targetCount.isEven ? targetCount - 1 : targetCount);
           await relBench.insertData(objectsCount, relTargetsCount);
           final distinctSourceStrings =
               ExecutorBaseRel.distinctSourceStrings(objectsCount);
+          debugPrint("source groups = $distinctSourceStrings, targets = $relTargetsCount");
 
           final resultCounts = List<int>.filled(3, -1);
 
@@ -270,23 +273,18 @@ class _MyHomePageState extends State<MyHomePage> {
             final qLinkConfigs = List.generate(
                 operationsCount,
                 (_) {
-                  // Ensures 10 results if object count is a multiple of 100,
-                  // otherwise about 10 (depending on how many int condition filters).
+                  // Ensures 5-6 results (depending on how many int condition filters).
                   // Also see prepareDataSources function in executor.
                   final number = random.nextInt(distinctSourceStrings);
-                  final intEquals = number.isEven ? 0 : 1;
                   return ConfigQueryWithLinks(
                     'Source group #$number',
-                      intEquals,
+                      random.nextInt(2),
                       'Target #$number');
                 },
                 growable: false);
             final relResults = await relBench.queryWithLinks(qLinkConfigs);
             RangeError.checkValueInInterval(
-                relResults.length,
-                1,
-                11,
-                'queryWithLinks results length');
+                relResults.length, 5, 6, 'queryWithLinks results length');
 
             final idsShuffled = (ids.toList(growable: false))..shuffle(random);
             final randomSliceLength = min(ids.length, operationsCount);
