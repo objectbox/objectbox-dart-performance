@@ -95,16 +95,23 @@ abstract class ExecutorBaseRel<T extends RelSourceEntity> {
 
   bool get indexed => T == RelSourceEntityIndexed;
 
-  // every 9th source has the same target,
-  // every other source has int 1,
-  // so to ensure all combinations of target, source group and int exist
-  // should never be a divisor of 9 or even
-  static int distinctSourceStrings(int objectCount) => 5;
+  /// Up to 100 sources have the same group so group query condition
+  /// returns up to 100 results regardless of source object count.
+  static int distinctSourceStrings(int sourceObjectCount) =>
+      max(1 , sourceObjectCount ~/ 100);
 
+  /// Creates repeating group + target + int combination blocks
+  /// where for the first distinctSourceStrings sources
+  /// the group number and target number match.
+  /// So overall there exist up to count / targets.length repetitions
+  /// == sources where group and target number match.
+  /// These are then queried for.
   List<T> prepareDataSources(int count, List<RelTargetEntity> targets) =>
       List.generate(count, (i) {
+        // TODO Int condition is currently pointless, does not reduce result set
         final string = 'Source group #${i % distinctSourceStrings(count)}';
         final target = targets[i % targets.length];
+        // Every other source has int 0 or 1
         return indexed
             ? RelSourceEntityIndexed.forInsert(string, i % 2, target) as T
             : RelSourceEntityPlain.forInsert(string, i % 2, target) as T;

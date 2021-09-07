@@ -243,8 +243,8 @@ class _MyHomePageState extends State<MyHomePage> {
           final ids = inserts.map((e) => e.id).toList(growable: false);
 
           final relBench = await bench.createRelBenchmark();
-          // Every 9th source has the same target
-          final relTargetsCount = max(1, objectsCount ~/ 9);
+          // Up to 10 sources have the same target
+          final relTargetsCount = max(1, objectsCount ~/ 10);
           await relBench.insertData(objectsCount, relTargetsCount);
           final distinctSourceStrings =
               ExecutorBaseRel.distinctSourceStrings(objectsCount);
@@ -269,16 +269,23 @@ class _MyHomePageState extends State<MyHomePage> {
 
             final qLinkConfigs = List.generate(
                 operationsCount,
-                (_) => ConfigQueryWithLinks(
-                    'Source group #${random.nextInt(distinctSourceStrings)}',
-                    1,
-                    'Target #${random.nextInt(relTargetsCount)}'),
+                (_) {
+                  // Ensures 10 results if object count is a multiple of 100,
+                  // otherwise about 10 (depending on how many int condition filters).
+                  // Also see prepareDataSources function in executor.
+                  final number = random.nextInt(distinctSourceStrings);
+                  final intEquals = number.isEven ? 0 : 1;
+                  return ConfigQueryWithLinks(
+                    'Source group #$number',
+                      intEquals,
+                      'Target #$number');
+                },
                 growable: false);
             final relResults = await relBench.queryWithLinks(qLinkConfigs);
             RangeError.checkValueInInterval(
                 relResults.length,
-                objectsCount / relTargetsCount / distinctSourceStrings ~/ 2 - 1,
-                objectsCount / relTargetsCount / distinctSourceStrings ~/ 2 + 1,
+                1,
+                11,
                 'queryWithLinks results length');
 
             final idsShuffled = (ids.toList(growable: false))..shuffle(random);
