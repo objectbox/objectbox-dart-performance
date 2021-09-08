@@ -151,10 +151,16 @@ class RelSourceEntityPlain implements RelSourceEntity {
 
   final isarRelTarget = isar.IsarLink<RelTargetEntity>();
 
+  // Note: constructor arg types must match with fromMap used by sqflite.
   RelSourceEntityPlain(this.id, this.tString, this.tLong,
-      [RelTargetEntity? relTarget])
-      : relTargetId = relTarget?.id ?? 0 {
+      [this.relTargetId = 0]) {
     obxRelTarget.targetId = relTargetId;
+  }
+
+  RelSourceEntityPlain.forInsert(
+      this.tString, this.tLong, RelTargetEntity? relTarget)
+      : id = 0,
+        relTargetId = relTarget?.id ?? 0 {
     isarRelTarget.value = relTarget;
   }
 
@@ -194,10 +200,16 @@ class RelSourceEntityIndexed implements RelSourceEntity {
 
   final isarRelTarget = isar.IsarLink<RelTargetEntity>();
 
+  // Note: constructor arg types must match with fromMap used by sqflite.
   RelSourceEntityIndexed(this.id, this.tString, this.tLong,
-      [RelTargetEntity? relTarget])
-      : relTargetId = relTarget?.id ?? 0 {
+      [this.relTargetId = 0]) {
     obxRelTarget.targetId = relTargetId;
+  }
+
+  RelSourceEntityIndexed.forInsert(
+      this.tString, this.tLong, RelTargetEntity? relTarget)
+      : id = 0,
+        relTargetId = relTarget?.id ?? 0 {
     isarRelTarget.value = relTarget;
   }
 

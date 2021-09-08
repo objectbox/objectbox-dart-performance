@@ -102,8 +102,8 @@ abstract class ExecutorBaseRel<T extends RelSourceEntity> {
         final string = 'Source group #${i % distinctSourceStrings(count)}';
         final target = targets[i % targets.length];
         return indexed
-            ? RelSourceEntityIndexed(0, string, i % 2, target) as T
-            : RelSourceEntityPlain(0, string, i % 2, target) as T;
+            ? RelSourceEntityIndexed.forInsert(string, i % 2, target) as T
+            : RelSourceEntityPlain.forInsert(string, i % 2, target) as T;
       }, growable: false);
 
   List<RelTargetEntity> prepareDataTargets(int count) =>
