@@ -37,7 +37,7 @@ void main(List<String> arguments) async {
   for (var i = 0; i < runs; i++) {
     bench.insertMany(inserts);
     final ids = inserts.map((e) => e.id).toList(growable: false);
-    final items = await bench.readAll();
+    final items = await bench.readAll(ids);
     bench.updateMany(items);
     bench.removeMany(ids);
 
