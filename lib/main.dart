@@ -210,7 +210,8 @@ class _MyHomePageState extends State<MyHomePage> {
               break;
             }
             final ids = inserts.map((e) => e.id).toList(growable: false);
-            final items = await bench.readAll();
+            final itemsOptional = await bench.readAll(ids);
+            final items = bench.allNotNull(itemsOptional);
             assert(items.length == objectsCount);
             bench.changeValues(items);
             if (!await awaitOrStop(bench.updateMany(items))) {

@@ -70,7 +70,7 @@ class Executor<T extends TestEntity> extends ExecutorBase<T> {
           .map(reader)
           .toList();
 
-  Future<List<T>> readAll() => tracker.trackAsync(
+  Future<List<T>> readAll(List<int> ids) => tracker.trackAsync(
       'readAll', () async => (await _db.query(_table)).map(_fromMap).toList());
 
   Future<List<T?>> queryById(List<int> ids, [String? benchmarkQualifier]) =>

@@ -39,9 +39,9 @@ class Executor<T extends TestEntity> extends ExecutorBase<T> {
       'updateMany',
       () => _store.writeTxnSync((isar) => _box.putAllSync(items))));
 
-  // TODO currently missing in isar (v0.4.0)
-  // Future<List<T>> readAll() =>
-  //     Future.value(tracker.track('readAll', () => _box.getAllSync()));
+  // Note: get all is not supported in isar (v0.4.0), use get by id.
+  Future<List<T?>> readAll(List<int> optionalIds) => Future.value(
+      tracker.track('readAll', () => _box.getAllSync(optionalIds)));
 
   Future<List<T?>> queryById(List<int> ids, [String? benchmarkQualifier]) =>
       Future.value(tracker.track('queryById' + (benchmarkQualifier ?? ''),

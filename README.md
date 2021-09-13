@@ -14,3 +14,11 @@ To run in release mode with Android Studio connect a device or start an emulator
 Run > Flutter Run 'main.dart' in Release Mode
 
 This will edit the `main.dart` run configuration and add `--release`to "Additional run args".
+
+## Implementation notes
+
+### Isar
+
+Isar is not yet released, so numbers are preliminary and functionality is limited.
+- Instead of read all does use read by id.
+- Query tests not available (queryWithLinks not implemented).

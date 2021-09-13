@@ -35,7 +35,9 @@ abstract class ExecutorBase<T extends TestEntity> {
   List<T> allNotNull(List<T?> items) =>
       items.map((e) => e!).toList(growable: false);
 
-  Future<List<T>> readAll() => throw UnimplementedError();
+  /// If available should use a read all function,
+  /// otherwise use the ID list to look up all items.
+  Future<List<T?>> readAll(List<int> optionalIds) => throw UnimplementedError();
 
   Future<void> insertMany(List<T> items);
 
@@ -63,7 +65,7 @@ abstract class ExecutorBase<T extends TestEntity> {
         final items = allNotNull(await queryById(ids));
         checkCount('queryById', items, count);
 
-        final itemsAll = await readAll();
+        final itemsAll = allNotNull(await readAll(ids));
         checkCount('readAll', itemsAll, count);
 
         changeValues(items);
