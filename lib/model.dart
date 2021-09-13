@@ -161,6 +161,7 @@ class RelSourceEntityPlain implements RelSourceEntity {
       this.tString, this.tLong, RelTargetEntity? relTarget)
       : id = 0,
         relTargetId = relTarget?.id ?? 0 {
+    obxRelTarget.targetId = relTargetId;
     isarRelTarget.value = relTarget;
   }
 
@@ -210,6 +211,7 @@ class RelSourceEntityIndexed implements RelSourceEntity {
       this.tString, this.tLong, RelTargetEntity? relTarget)
       : id = 0,
         relTargetId = relTarget?.id ?? 0 {
+    obxRelTarget.targetId = relTargetId;
     isarRelTarget.value = relTarget;
   }
 
