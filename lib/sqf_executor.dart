@@ -127,6 +127,9 @@ class ExecutorRel<T extends RelSourceEntity> extends ExecutorBaseRel<T> {
                     id integer primary key autoincrement,
                     name text)
                 ''');
+    // Always add index on target name.
+    await db.execute('CREATE INDEX ${tableTarget}_str ON $tableTarget(name '
+        '${ExecutorBase.caseSensitive ? '' : 'COLLATE NOCASE'})');
     return ExecutorRel._(
       tracker,
       db,

@@ -233,7 +233,9 @@ class RelTargetEntity extends EntityWithSettableId {
   @HiveField(0)
   int id;
 
+  @Index()
   @HiveField(1)
+  @isar.Index(indexType: isar.IndexType.value)
   String name;
 
   RelTargetEntity(this.id, this.name);
