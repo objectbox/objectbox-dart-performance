@@ -103,7 +103,7 @@ class ExecutorRel<T extends RelSourceEntity> extends ExecutorBaseRel<T> {
 
   Future<void> close() async {
     await _box.close();
-    await _boxTarget.clear();
+    await _boxTarget.close();
   }
 
   Future<void> insertData(int relSourceCount, int relTargetCount) async {

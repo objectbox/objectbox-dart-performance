@@ -132,7 +132,9 @@ class ExecutorRel<T extends RelSourceEntity> extends ExecutorBaseRel<T> {
       : box = store.box(),
         super(tracker);
 
-  Future<void> close() async => store.close();
+  Future<void> close() async {
+    // Do nothing, store is closed by Executor.
+  }
 
   Future<void> insertData(int relSourceCount, int relTargetCount) =>
       Future.sync(() {

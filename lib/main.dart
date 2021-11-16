@@ -319,6 +319,8 @@ class _MyHomePageState extends State<MyHomePage> {
             await bench.removeMany(inserts.map((e) => e.id).toList());
           }
 
+          await relBench.close();
+
           break;
       }
     } catch (e) {
