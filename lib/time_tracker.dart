@@ -55,7 +55,9 @@ class TimeTracker {
         : ['Function', 'Runs', 'Average ms', 'All times']);
 
     for (final fn in functions) {
-      final avg = averageMs(fn).toStringAsFixed(4);
+      // Sub-millisecond values are within measurement error,
+      // but show at least 1 decimal.
+      final avg = averageMs(fn).toStringAsFixed(1);
       if (avgOnly) {
         _print([fn, avg]);
       } else {
