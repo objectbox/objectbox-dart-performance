@@ -69,7 +69,7 @@ class MyHomePage extends StatefulWidget {
 
 enum DbEngine { ObjectBox, sqflite, Hive, IsarSync }
 
-enum Mode { CRUD, Queries }
+enum Mode { CRUD, Queries, QueryById }
 
 enum RunState { idle, running, stopping }
 
@@ -80,6 +80,7 @@ class _MyHomePageState extends State<MyHomePage> {
   final _objectsController = TextEditingController(text: '10000');
   final _runsController = TextEditingController(text: '10');
   final _operationsController = TextEditingController(text: '1000');
+  final _resultsController = TextEditingController(text: '10000');
   late final TimeTracker _tracker = TimeTracker(_print);
   final appDir = Completer<Directory>();
 
@@ -240,7 +241,6 @@ class _MyHomePageState extends State<MyHomePage> {
           if (!await awaitOrStop(bench.insertMany(inserts))) {
             break;
           }
-          final ids = inserts.map((e) => e.id).toList(growable: false);
 
           final relBench = await bench.createRelBenchmark();
           // About 9 sources have the same target
@@ -253,14 +253,6 @@ class _MyHomePageState extends State<MyHomePage> {
           debugPrint("source groups = $distinctSourceStrings, targets = $relTargetsCount");
 
           final resultCounts = List<int>.filled(3, -1);
-
-          final randomSlice = (List<int> list, int length) {
-            final start = list.length == length
-                ? 0 : random.nextInt(list.length - length);
-            final result = list.sublist(start, start + length);
-            assert(result.length == length);
-            return result;
-          };
 
           for (var i = 0; i < runs && _state == RunState.running; i++) {
             final qStringValues = List.generate(operationsCount,
@@ -286,40 +278,79 @@ class _MyHomePageState extends State<MyHomePage> {
             RangeError.checkValueInInterval(
                 relResults.length, 5, 6, 'queryWithLinks results length');
 
-            final idsShuffled = (ids.toList(growable: false))..shuffle(random);
-            final randomSliceLength = min(ids.length, operationsCount);
-            final qByIdItems = await bench.queryById(
-                randomSlice(idsShuffled, randomSliceLength), '(random)');
-            final qByIdItems2 =
-                await bench.queryById(randomSlice(ids, randomSliceLength));
-            assert(qByIdItems.length == qByIdItems2.length);
-
             await printResult('$_mode: ${i + 1}/$runs finished');
 
             resultCounts[0] = qStringMatching.length;
             resultCounts[1] = relResults.length;
-            resultCounts[2] = qByIdItems.length;
           }
 
           if (_state == RunState.running) {
             _tracker.printTimes(avgOnly: true, functions: [
               'queryStringEquals',
               'queryWithLinks',
-              'queryById',
-              'queryById(random)',
             ]);
 
             _print(<String>['', '']);
             _print(<String>['', 'Count']);
             _print(<String>['queryStringEquals', resultCounts[0].toString()]);
             _print(<String>['queryWithLinks', resultCounts[1].toString()]);
-            _print(<String>['queryById', resultCounts[2].toString()]);
 
             // just so that the test after benchmarks passes
             await bench.removeMany(inserts.map((e) => e.id).toList());
           }
 
           await relBench.close();
+
+          break;
+        case Mode.QueryById:
+          final random = Random();
+          final resultsCount = int.parse(_resultsController.value.text);
+
+          await printResult('Preparing data...');
+          final inserts = bench.prepareData(objectsCount);
+          if (!await awaitOrStop(bench.insertMany(inserts))) {
+            break;
+          }
+
+          final ids = inserts.map((e) => e.id).toList(growable: false);
+
+          final randomSlice = (List<int> list, int length) {
+            final start = list.length == length
+                ? 0 : random.nextInt(list.length - length);
+            final result = list.sublist(start, start + length);
+            assert(result.length == length);
+            return result;
+          };
+
+          int resultCount = 0;
+          for (var i = 0; i < runs && _state == RunState.running; i++) {
+            final idsShuffled = (ids.toList(growable: false))
+              ..shuffle(random);
+            final randomSliceLength = min(ids.length, resultsCount);
+            final qByIdItems = await bench.queryById(
+                randomSlice(idsShuffled, randomSliceLength), '(random)');
+            final qByIdItems2 =
+            await bench.queryById(randomSlice(ids, randomSliceLength));
+            assert(qByIdItems.length == qByIdItems2.length);
+
+            await printResult('$_mode: ${i + 1}/$runs finished');
+
+            resultCount = qByIdItems.length;
+          }
+
+          if (_state == RunState.running) {
+            _tracker.printTimes(avgOnly: true, functions: [
+              'queryById',
+              'queryById(random)',
+            ]);
+
+            _print(<String>['', '']);
+            _print(<String>['', 'Count']);
+            _print(<String>['queryById', resultCount.toString()]);
+
+            // just so that the test after benchmarks passes
+            await bench.removeMany(inserts.map((e) => e.id).toList());
+          }
 
           break;
       }
@@ -403,7 +434,8 @@ class _MyHomePageState extends State<MyHomePage> {
                   //      benchmarks in the same loop.
                   items: enumDropDownItems(Mode.values
                       .where((mode) =>
-                          _db != DbEngine.IsarSync || mode != Mode.Queries)
+                          _db != DbEngine.IsarSync ||
+                          (mode != Mode.Queries && mode != Mode.QueryById))
                       .toList()),
                   onChanged: (Mode? value) => configure(_db, value!, _indexed)),
               Spacer(),
@@ -439,6 +471,16 @@ class _MyHomePageState extends State<MyHomePage> {
                     labelText: 'Operations',
                   ),
                 )),
+              if (_mode == Mode.QueryById) Spacer(),
+              if (_mode == Mode.QueryById)
+                Expanded(
+                    child: TextField(
+                      keyboardType: TextInputType.number,
+                      controller: _resultsController,
+                      decoration: InputDecoration(
+                        labelText: 'Results',
+                      ),
+                    )),
               Spacer(),
               Expanded(
                   child: TextField(
