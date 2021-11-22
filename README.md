@@ -15,6 +15,8 @@ Run > Flutter Run 'main.dart' in Release Mode
 
 This will edit the `main.dart` run configuration and add `--release`to "Additional run args".
 
+To improve performance, make sure to disconnect dev tools. E.g. stop the app and launch it again.
+
 ## Implementation notes
 
 ### Isar
