@@ -20,8 +20,6 @@ dependencies:
   path: ^1.8.0
   cupertino_icons: ^1.0.2
   hive: ^2.0.4
-  firebase_core: ^1.1.0
-  cloud_firestore: ^2.1.0
   isar: 0.4.0
   isar_flutter_libs: 0.4.0
 

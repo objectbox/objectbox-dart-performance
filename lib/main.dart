@@ -15,7 +15,6 @@ import 'obx_executor.dart' as obx;
 import 'sqf_executor.dart' as sqf;
 
 // import 'hive_lazy_executor.dart' as hive_lazy;
-// import 'cf_executor.dart' as cf;
 import 'time_tracker.dart';
 
 void main() {
@@ -133,8 +132,6 @@ class _MyHomePageState extends State<MyHomePage> {
         return isar_sync.Executor.create<T>(dbDir, _tracker);
       // case 4:
       //   return hive_lazy.Executor.create<T>(dbDir, _tracker);
-      // case 5:
-      //   return cf.Executor.create<T>(dbDir, _tracker);
       default:
         throw Exception('Unknown executor');
     }
