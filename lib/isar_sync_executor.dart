@@ -3,7 +3,6 @@ import 'dart:io';
 import 'package:isar/isar.dart';
 
 import 'executor.dart';
-import 'isar.g.dart';
 import 'model.dart';
 import 'time_tracker.dart';
 
@@ -17,12 +16,20 @@ class Executor<T extends TestEntity> extends ExecutorBase<T> {
 
   static Future<Executor<T>> create<T extends TestEntity>(
       Directory dbDir, TimeTracker tracker) async {
-    return Executor._(await openIsar(directory: dbDir.path), tracker);
+    var isar = Isar.openSync(
+      schemas: [
+        TestEntityPlainSchema,
+        TestEntityIndexedSchema,
+        RelSourceEntityPlainSchema,
+        RelSourceEntityIndexedSchema,
+        RelTargetEntitySchema,
+      ],
+      directory: dbDir.path,
+    );
+    return Executor._(isar, tracker);
   }
 
-  // TODO isar v0.4.0 - crashes with a SEGFAULT (at least in Android emulator)
-  // Future<void> close() async => await _store.close();
-  Future<void> close() => Future.value();
+  Future<void> close() async => await _store.close();
 
   Future<void> insertMany(List<T> items) => Future.value(
         tracker.track(
