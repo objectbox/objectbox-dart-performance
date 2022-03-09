@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:io';
 import 'dart:math';
-import 'dart:ui';
 
 import 'package:flutter/material.dart';
 import 'package:path/path.dart' as path;
@@ -13,7 +12,6 @@ import 'isar_sync_executor.dart' as isar_sync;
 import 'model.dart';
 import 'obx_executor.dart' as obx;
 import 'sqf_executor.dart' as sqf;
-
 // import 'hive_lazy_executor.dart' as hive_lazy;
 import 'time_tracker.dart';
 
@@ -243,11 +241,13 @@ class _MyHomePageState extends State<MyHomePage> {
           // About 9 sources have the same target
           // Ensure target count is uneven to not align with odd/even int values.
           final targetCount = objectsCount ~/ 10;
-          final relTargetsCount = max(1, targetCount.isEven ? targetCount - 1 : targetCount);
+          final relTargetsCount =
+              max(1, targetCount.isEven ? targetCount - 1 : targetCount);
           await relBench.insertData(objectsCount, relTargetsCount);
           final distinctSourceStrings =
               ExecutorBaseRel.distinctSourceStrings(objectsCount);
-          debugPrint("source groups = $distinctSourceStrings, targets = $relTargetsCount");
+          debugPrint(
+              "source groups = $distinctSourceStrings, targets = $relTargetsCount");
 
           final resultCounts = List<int>.filled(3, -1);
 
@@ -259,18 +259,13 @@ class _MyHomePageState extends State<MyHomePage> {
                 await bench.queryStringEquals(qStringValues);
             assert(qStringMatching.length == 1);
 
-            final qLinkConfigs = List.generate(
-                operationsCount,
-                (_) {
-                  // Ensures 5-6 results (depending on how many int condition filters).
-                  // Also see prepareDataSources function in executor.
-                  final number = random.nextInt(distinctSourceStrings);
-                  return ConfigQueryWithLinks(
-                    'Source group #$number',
-                      random.nextInt(2),
-                      'Target #$number');
-                },
-                growable: false);
+            final qLinkConfigs = List.generate(operationsCount, (_) {
+              // Ensures 5-6 results (depending on how many int condition filters).
+              // Also see prepareDataSources function in executor.
+              final number = random.nextInt(distinctSourceStrings);
+              return ConfigQueryWithLinks('Source group #$number',
+                  random.nextInt(2), 'Target #$number');
+            }, growable: false);
             final relResults = await relBench.queryWithLinks(qLinkConfigs);
             RangeError.checkValueInInterval(
                 relResults.length, 5, 6, 'queryWithLinks results length');
@@ -313,7 +308,8 @@ class _MyHomePageState extends State<MyHomePage> {
 
           final randomSlice = (List<int> list, int length) {
             final start = list.length == length
-                ? 0 : random.nextInt(list.length - length);
+                ? 0
+                : random.nextInt(list.length - length);
             final result = list.sublist(start, start + length);
             assert(result.length == length);
             return result;
@@ -321,13 +317,12 @@ class _MyHomePageState extends State<MyHomePage> {
 
           int resultCount = 0;
           for (var i = 0; i < runs && _state == RunState.running; i++) {
-            final idsShuffled = (ids.toList(growable: false))
-              ..shuffle(random);
+            final idsShuffled = (ids.toList(growable: false))..shuffle(random);
             final randomSliceLength = min(ids.length, resultsCount);
             final qByIdItems = await bench.queryById(
                 randomSlice(idsShuffled, randomSliceLength), '(random)');
             final qByIdItems2 =
-            await bench.queryById(randomSlice(ids, randomSliceLength));
+                await bench.queryById(randomSlice(ids, randomSliceLength));
             assert(qByIdItems.length == qByIdItems2.length);
 
             await printResult('$_mode: ${i + 1}/$runs finished');
@@ -472,12 +467,12 @@ class _MyHomePageState extends State<MyHomePage> {
               if (_mode == Mode.QueryById)
                 Expanded(
                     child: TextField(
-                      keyboardType: TextInputType.number,
-                      controller: _resultsController,
-                      decoration: InputDecoration(
-                        labelText: 'Results',
-                      ),
-                    )),
+                  keyboardType: TextInputType.number,
+                  controller: _resultsController,
+                  decoration: InputDecoration(
+                    labelText: 'Results',
+                  ),
+                )),
               Spacer(),
               Expanded(
                   child: TextField(

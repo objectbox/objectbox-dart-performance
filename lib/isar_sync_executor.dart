@@ -1,10 +1,11 @@
 import 'dart:io';
 
-import 'package:benchapp/executor.dart';
-import 'package:benchapp/isar.g.dart';
-import 'package:benchapp/model.dart';
-import 'package:benchapp/time_tracker.dart';
 import 'package:isar/isar.dart';
+
+import 'executor.dart';
+import 'isar.g.dart';
+import 'model.dart';
+import 'time_tracker.dart';
 
 class Executor<T extends TestEntity> extends ExecutorBase<T> {
   final Isar _store;
