@@ -351,7 +351,7 @@ class _MyHomePageState extends State<MyHomePage> {
         _result = "Benchmark failed: $e";
         _state = RunState.idle;
       });
-      return;
+      rethrow;
     }
 
     // Sanity check after the benchmark: subsequent runs must have same results.
