@@ -117,9 +117,8 @@ class ExecutorRel<T extends RelSourceEntity> extends ExecutorBaseRel<T> {
     _assignIds(sources);
     _store.writeTxnSync((isar) => _box.putAllSync(sources));
 
-    // TODO no count() available in isar yet?
-    // assert(_box.length == relSourceCount);
-    // assert(_boxTarget.length == relTargetCount);
+    assert(_box.countSync() == relSourceCount);
+    assert(_boxTarget.countSync() == relTargetCount);
   }
 
   Future<List<T>> queryWithLinks(List<ConfigQueryWithLinks> args) {
