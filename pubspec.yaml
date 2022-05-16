@@ -4,8 +4,8 @@ description: Simple Dart DB performance benchmark
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 
 environment:
-  sdk: ">=2.12.0 <3.0.0"
-  flutter: ">=2.0.0"
+  sdk: ">=2.16.0 <3.0.0"
+  flutter: ">=2.10.0"
 
 flutter:
   uses-material-design: true
@@ -13,23 +13,21 @@ flutter:
 dependencies:
   flutter:
     sdk: flutter
-  objectbox: ^1.2.1
+  objectbox: ^1.5.0
   objectbox_flutter_libs: any
   path_provider: ^2.0.1
   sqflite: ^2.0.0+3
   path: ^1.8.0
   cupertino_icons: ^1.0.2
   hive: ^2.0.4
-  firebase_core: ^1.1.0
-  cloud_firestore: ^2.1.0
-  isar: 0.4.0
-  isar_flutter_libs: 0.4.0
+  isar: ^2.5.0
+  isar_flutter_libs: any
 
 dev_dependencies:
   objectbox_generator: any
   build_runner: any
   hive_generator: any
-  isar_generator: ^0.4.0
+  isar_generator: any
 
 #dependency_overrides:
 #  objectbox:

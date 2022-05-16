@@ -3,8 +3,8 @@ import 'dart:io';
 import 'package:hive/hive.dart';
 
 import 'executor.dart';
-import 'time_tracker.dart';
 import 'model.dart';
+import 'time_tracker.dart';
 
 /// WARNING: outdated and unused
 class Executor<T extends TestEntity> extends ExecutorBase<T> {

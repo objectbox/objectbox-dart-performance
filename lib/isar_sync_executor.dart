@@ -1,27 +1,35 @@
 import 'dart:io';
 
-import 'package:benchapp/executor.dart';
-import 'package:benchapp/isar.g.dart';
-import 'package:benchapp/model.dart';
-import 'package:benchapp/time_tracker.dart';
 import 'package:isar/isar.dart';
+
+import 'executor.dart';
+import 'model.dart';
+import 'time_tracker.dart';
 
 class Executor<T extends TestEntity> extends ExecutorBase<T> {
   final Isar _store;
   final IsarCollection<T> _box;
 
   Executor._(this._store, TimeTracker tracker)
-      : _box = _store.getCollection(T.toString()),
+      : _box = _store.getCollection(),
         super(tracker);
 
   static Future<Executor<T>> create<T extends TestEntity>(
       Directory dbDir, TimeTracker tracker) async {
-    return Executor._(await openIsar(directory: dbDir.path), tracker);
+    final isar = await Isar.open(
+      schemas: [
+        TestEntityPlainSchema,
+        TestEntityIndexedSchema,
+        RelSourceEntityPlainSchema,
+        RelSourceEntityIndexedSchema,
+        RelTargetEntitySchema,
+      ],
+      directory: dbDir.path,
+    );
+    return Executor._(isar, tracker);
   }
 
-  // TODO isar v0.4.0 - crashes with a SEGFAULT (at least in Android emulator)
-  // Future<void> close() async => await _store.close();
-  Future<void> close() => Future.value();
+  Future<void> close() async => await _store.close();
 
   Future<void> insertMany(List<T> items) => Future.value(
         tracker.track(
@@ -39,9 +47,10 @@ class Executor<T extends TestEntity> extends ExecutorBase<T> {
       'updateMany',
       () => _store.writeTxnSync((isar) => _box.putAllSync(items))));
 
-  // Note: get all is not supported in isar (v0.4.0), use get by id.
+  // Note: get all is not supported in isar (v2.5.0), instead
+  // use query with no conditions as suggested in Quickstart.
   Future<List<T?>> readAll(List<int> optionalIds) => Future.value(
-      tracker.track('readAll', () => _box.getAllSync(optionalIds)));
+      tracker.track('readAll', () => _box.where().findAllSync()));
 
   Future<List<T?>> queryById(List<int> ids, [String? benchmarkQualifier]) =>
       Future.value(tracker.track('queryById' + (benchmarkQualifier ?? ''),
@@ -93,8 +102,8 @@ class ExecutorRel<T extends RelSourceEntity> extends ExecutorBaseRel<T> {
   final IsarCollection<RelTargetEntity> _boxTarget;
 
   ExecutorRel._(TimeTracker tracker, this._store)
-      : _box = _store.getCollection(T.toString()),
-        _boxTarget = _store.getCollection('RelTargetEntity'),
+      : _box = _store.getCollection(),
+        _boxTarget = _store.relTargetEntitys,
         super(tracker);
 
   Future<void> close() async => Future.value();
@@ -108,9 +117,8 @@ class ExecutorRel<T extends RelSourceEntity> extends ExecutorBaseRel<T> {
     _assignIds(sources);
     _store.writeTxnSync((isar) => _box.putAllSync(sources));
 
-    // TODO no count() available in isar yet?
-    // assert(_box.length == relSourceCount);
-    // assert(_boxTarget.length == relTargetCount);
+    assert(_box.countSync() == relSourceCount);
+    assert(_boxTarget.countSync() == relTargetCount);
   }
 
   Future<List<T>> queryWithLinks(List<ConfigQueryWithLinks> args) {

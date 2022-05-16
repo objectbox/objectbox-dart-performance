@@ -4,10 +4,6 @@
 
 Generate code with `flutter pub run build_runner build`.
 
-**TODO remove later; isar v0.4.0 needs a "public zero-arg constructor"**
-After generating code need to manually adjust `isar.g.dart` and replace constructor calls
-with `Example.forIsar()` calls.
-
 ## Running
 
 To run in release mode with Android Studio connect a device or start an emulator, then
@@ -21,6 +17,5 @@ To improve performance, make sure to disconnect dev tools. E.g. stop the app and
 
 ### Isar
 
-Isar is not yet released, so numbers are preliminary and functionality is limited.
-- Instead of read all does use read by id.
+- Instead of read all does use query with no conditions and returns all results.
 - Query tests not available (queryWithLinks not implemented).

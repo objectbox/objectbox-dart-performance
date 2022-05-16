@@ -1,7 +1,5 @@
 import 'dart:io';
 
-import 'package:objectbox/objectbox.dart';
-
 import 'executor.dart';
 import 'model.dart';
 import 'objectbox.g.dart';
