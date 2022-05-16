@@ -17,6 +17,5 @@ To improve performance, make sure to disconnect dev tools. E.g. stop the app and
 
 ### Isar
 
-Isar is not yet released, so numbers are preliminary and functionality is limited.
-- Instead of read all does use read by id.
+- Instead of read all does use query with no conditions and returns all results.
 - Query tests not available (queryWithLinks not implemented).
