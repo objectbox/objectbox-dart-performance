@@ -32,7 +32,9 @@ abstract class TestEntity extends EntityWithSettableId {
 @HiveType(typeId: 1)
 @Collection()
 class TestEntityPlain implements TestEntity {
+
   @HiveField(0)
+  @Id()
   int id;
 
   @HiveField(1)
@@ -64,6 +66,7 @@ class TestEntityPlain implements TestEntity {
 @Collection()
 class TestEntityIndexed implements TestEntity {
   @HiveField(0)
+  @Id()
   int id;
 
   @obx.Index()
@@ -115,7 +118,9 @@ abstract class RelSourceEntity extends EntityWithSettableId {
 @HiveType(typeId: 3)
 @Collection()
 class RelSourceEntityPlain implements RelSourceEntity {
+
   @HiveField(0)
+  @Id()
   int id;
 
   @HiveField(1)
@@ -157,7 +162,9 @@ class RelSourceEntityPlain implements RelSourceEntity {
 @HiveType(typeId: 4)
 @Collection()
 class RelSourceEntityIndexed implements RelSourceEntity {
+
   @HiveField(0)
+  @Id()
   int id;
 
   @obx.Index()
@@ -201,7 +208,9 @@ class RelSourceEntityIndexed implements RelSourceEntity {
 @HiveType(typeId: 5)
 @Collection()
 class RelTargetEntity extends EntityWithSettableId {
+
   @HiveField(0)
+  @Id()
   int id;
 
   @obx.Index()

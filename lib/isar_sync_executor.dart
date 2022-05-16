@@ -11,7 +11,7 @@ class Executor<T extends TestEntity> extends ExecutorBase<T> {
   final IsarCollection<T> _box;
 
   Executor._(this._store, TimeTracker tracker)
-      : _box = _store.getCollection(T.toString()),
+      : _box = _store.getCollection(),
         super(tracker);
 
   static Future<Executor<T>> create<T extends TestEntity>(
@@ -101,8 +101,8 @@ class ExecutorRel<T extends RelSourceEntity> extends ExecutorBaseRel<T> {
   final IsarCollection<RelTargetEntity> _boxTarget;
 
   ExecutorRel._(TimeTracker tracker, this._store)
-      : _box = _store.getCollection(T.toString()),
-        _boxTarget = _store.getCollection('RelTargetEntity'),
+      : _box = _store.getCollection(),
+        _boxTarget = _store.relTargetEntitys,
         super(tracker);
 
   Future<void> close() async => Future.value();
