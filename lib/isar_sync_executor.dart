@@ -16,7 +16,7 @@ class Executor<T extends TestEntity> extends ExecutorBase<T> {
 
   static Future<Executor<T>> create<T extends TestEntity>(
       Directory dbDir, TimeTracker tracker) async {
-    var isar = Isar.openSync(
+    final isar = await Isar.open(
       schemas: [
         TestEntityPlainSchema,
         TestEntityIndexedSchema,
