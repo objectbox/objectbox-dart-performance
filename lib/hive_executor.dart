@@ -6,46 +6,55 @@ import 'executor.dart';
 import 'model.dart';
 import 'time_tracker.dart';
 
-class Executor<T extends TestEntity> extends ExecutorBase<T> {
-  final Box<T> _box;
+/// Note: There are no explicit indixes in Hive.
+class Executor extends ExecutorBase<TestEntityPlain> {
+  final Box<TestEntityPlain> _box;
   final String _dir;
 
   Executor._(this._dir, this._box, TimeTracker tracker) : super(tracker);
 
-  static Future<Executor<T>> create<T extends TestEntity>(
-      Directory dbDir, TimeTracker tracker) async {
+  static Future<Executor> create(Directory dbDir, TimeTracker tracker) async {
     if (!Hive.isAdapterRegistered(TestEntityPlainAdapter().typeId)) {
       Hive.registerAdapter(TestEntityPlainAdapter());
     }
-    if (!Hive.isAdapterRegistered(TestEntityIndexedAdapter().typeId)) {
-      Hive.registerAdapter(TestEntityIndexedAdapter());
-    }
-    return Executor._(dbDir.path,
-        await Hive.openBox(T.toString(), path: dbDir.path), tracker);
+    return Executor._(
+        dbDir.path,
+        await Hive.openBox((TestEntityPlain).toString(), path: dbDir.path),
+        tracker);
   }
 
   Future<void> close() async => await _box.close();
 
-  Future<void> insertMany(List<T> items) async =>
+  @override
+  TestEntityPlain createEntity(
+      String tString, int tInt, int tLong, double tDouble) {
+    return TestEntityPlain(0, tString, tInt, tLong, tDouble);
+  }
+
+  Future<void> insertMany(List<TestEntityPlain> items) async =>
       tracker.trackAsync('insertMany', () async {
         int id = 1;
-        final itemsById = <int, T>{};
-        items.forEach((T o) {
+        final itemsById = <int, TestEntityPlain>{};
+        items.forEach((TestEntityPlain o) {
           if (o.id == 0) o.id = id++;
           itemsById[o.id] = o;
         });
         return await _box.putAll(itemsById);
       });
 
-  Future<void> updateMany(List<T> items) async => tracker.trackAsync(
-      'updateMany',
-      () async => await _box.putAll(
-          Map<int, T>.fromIterable(items, key: (o) => o.id, value: (o) => o)));
+  Future<void> updateMany(List<TestEntityPlain> items) async =>
+      tracker.trackAsync(
+          'updateMany',
+          () async => await _box.putAll(Map<int, TestEntityPlain>.fromIterable(
+              items,
+              key: (o) => o.id,
+              value: (o) => o)));
 
-  Future<List<T>> readAll(List<int> ids) =>
+  Future<List<TestEntityPlain>> readAll(List<int> ids) =>
       Future.value(tracker.track('readAll', () => _box.values.toList()));
 
-  Future<List<T?>> queryById(List<int> ids, [String? benchmarkQualifier]) =>
+  Future<List<TestEntityPlain?>> queryById(List<int> ids,
+          [String? benchmarkQualifier]) =>
       Future.value(tracker.track('queryById' + (benchmarkQualifier ?? ''),
           () => ids.map(_box.get).toList()));
 
@@ -56,16 +65,16 @@ class Executor<T extends TestEntity> extends ExecutorBase<T> {
       });
 
   // Hive doesn't have queries -> let's emulate
-  Future<List<T>> queryStringEquals(List<String> values) {
+  Future<List<TestEntityPlain>> queryStringEquals(List<String> values) {
     if (!ExecutorBase.caseSensitive) {
       values = values.map((e) => e.toLowerCase()).toList(growable: false);
     }
     return Future.value(tracker.track('queryStringEquals', () {
-      late List<T> result;
+      late List<TestEntityPlain> result;
       final length = values.length;
       for (var i = 0; i < length; i++) {
         result = _box.values
-            .where((T object) => ExecutorBase.caseSensitive
+            .where((TestEntityPlain object) => ExecutorBase.caseSensitive
                 ? object.tString == values[i]
                 : object.tString.toLowerCase() == values[i])
             .toList();
@@ -74,9 +83,8 @@ class Executor<T extends TestEntity> extends ExecutorBase<T> {
     }));
   }
 
-  Future<ExecutorBaseRel> createRelBenchmark() => indexed
-      ? ExecutorRel.create<RelSourceEntityIndexed>(tracker, _dir)
-      : ExecutorRel.create<RelSourceEntityPlain>(tracker, _dir);
+  Future<ExecutorBaseRel> createRelBenchmark() =>
+      ExecutorRel.create<RelSourceEntityPlain>(tracker, _dir);
 }
 
 class ExecutorRel<T extends RelSourceEntity> extends ExecutorBaseRel<T> {
@@ -87,9 +95,6 @@ class ExecutorRel<T extends RelSourceEntity> extends ExecutorBaseRel<T> {
       TimeTracker tracker, String? path) async {
     if (!Hive.isAdapterRegistered(RelSourceEntityPlainAdapter().typeId)) {
       Hive.registerAdapter(RelSourceEntityPlainAdapter());
-    }
-    if (!Hive.isAdapterRegistered(RelSourceEntityIndexedAdapter().typeId)) {
-      Hive.registerAdapter(RelSourceEntityIndexedAdapter());
     }
     if (!Hive.isAdapterRegistered(RelTargetEntityAdapter().typeId)) {
       Hive.registerAdapter(RelTargetEntityAdapter());

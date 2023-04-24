@@ -30,7 +30,7 @@ void main(List<String> arguments) async {
   }
 
   final tracker = TimeTracker((Iterable<String> columns) => print(columns));
-  final bench = Executor(dbDir, tracker);
+  final bench = ExecutorPlain(dbDir, tracker);
 
   final inserts = bench.prepareData(count);
 
