@@ -79,6 +79,7 @@ class _MyHomePageState extends State<MyHomePage> {
   final _operationsController = TextEditingController(text: '1000');
   final _resultsController = TextEditingController(text: '10000');
   late final TimeTracker _tracker = TimeTracker(_print);
+  /// The directory where a temporary directory for each benchmark is created in.
   final appDir = Completer<Directory>();
 
   var _result = '';
@@ -113,7 +114,13 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   void initState() {
     super.initState();
-    getApplicationDocumentsDirectory().then(appDir.complete);
+    /// Use getTemporaryDirectory instead of getApplicationDocumentsDirectory to
+    /// avoid creating and deleting many files in a potentially backed up
+    /// location on the test device.
+    getTemporaryDirectory().then((value) {
+      debugPrint("Using directory: " + value.absolute.path);
+      appDir.complete(value);
+    });
   }
 
   Future<ExecutorBase<T>> _createExecutor<T extends TestEntity>(
