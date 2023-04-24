@@ -1,19 +1,26 @@
 # ObjectBox Flutter Database Performance Benchmarks
 
-## Building
+## Setup
 
-Generate code with `flutter pub run build_runner build`.
+As usual run `flutter pub get`.
 
 ## Running
 
+Make sure to run the app in release mode to avoid any performance penalties from debug mode.
+
 To run in release mode with Android Studio connect a device or start an emulator, then
-Run > Flutter Run 'main.dart' in Release Mode
+Run > Flutter Run 'main.dart' in Release Mode.
 
-This will edit the `main.dart` run configuration and add `--release`to "Additional run args".
+Or run `flutter run --release`.
 
-To improve performance, make sure to disconnect dev tools. E.g. stop the app and launch it again.
+To further improve performance, make sure to disconnect dev tools. E.g. stop the app on the device
+and launch it again.
 
 ## Implementation notes
+
+### Hive
+
+- No test with index as Hive does not support explicit indexes.
 
 ### Isar
 
