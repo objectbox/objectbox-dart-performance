@@ -11,13 +11,13 @@ class Executor<T extends TestEntity> extends ExecutorBase<T> {
   final IsarCollection<T> _box;
 
   Executor._(this._store, TimeTracker tracker)
-      : _box = _store.getCollection(),
+      : _box = _store.collection(),
         super(tracker);
 
   static Future<Executor<T>> create<T extends TestEntity>(
       Directory dbDir, TimeTracker tracker) async {
     final isar = await Isar.open(
-      schemas: [
+      [
         TestEntityPlainSchema,
         TestEntityIndexedSchema,
         RelSourceEntityPlainSchema,
@@ -37,20 +37,19 @@ class Executor<T extends TestEntity> extends ExecutorBase<T> {
           () {
             _assignIds(items);
             return _store.writeTxnSync(
-              (isar) => _box.putAllSync(items),
+              () => _box.putAllSync(items),
             );
           },
         ),
       );
 
   Future<void> updateMany(List<T> items) => Future.value(tracker.track(
-      'updateMany',
-      () => _store.writeTxnSync((isar) => _box.putAllSync(items))));
+      'updateMany', () => _store.writeTxnSync(() => _box.putAllSync(items))));
 
   // Note: get all is not supported in isar (v2.5.0), instead
   // use query with no conditions as suggested in Quickstart.
-  Future<List<T?>> readAll(List<int> optionalIds) => Future.value(
-      tracker.track('readAll', () => _box.where().findAllSync()));
+  Future<List<T?>> readAll(List<int> optionalIds) =>
+      Future.value(tracker.track('readAll', () => _box.where().findAllSync()));
 
   Future<List<T?>> queryById(List<int> ids, [String? benchmarkQualifier]) =>
       Future.value(tracker.track('queryById' + (benchmarkQualifier ?? ''),
@@ -58,7 +57,7 @@ class Executor<T extends TestEntity> extends ExecutorBase<T> {
 
   Future<void> removeMany(List<int> ids) => Future.value(
         tracker.track('removeMany',
-            () => _store.writeTxnSync((Isar isar) => _box.deleteAllSync(ids))),
+            () => _store.writeTxnSync(() => _box.deleteAllSync(ids))),
       );
 
   Future<List<T>> queryStringEquals(List<String> values) async =>
@@ -102,7 +101,7 @@ class ExecutorRel<T extends RelSourceEntity> extends ExecutorBaseRel<T> {
   final IsarCollection<RelTargetEntity> _boxTarget;
 
   ExecutorRel._(TimeTracker tracker, this._store)
-      : _box = _store.getCollection(),
+      : _box = _store.collection(),
         _boxTarget = _store.relTargetEntitys,
         super(tracker);
 
@@ -111,11 +110,11 @@ class ExecutorRel<T extends RelSourceEntity> extends ExecutorBaseRel<T> {
   Future<void> insertData(int relSourceCount, int relTargetCount) async {
     final targets = prepareDataTargets(relTargetCount);
     _assignIds(targets);
-    _store.writeTxnSync((isar) => _boxTarget.putAllSync(targets));
+    _store.writeTxnSync(() => _boxTarget.putAllSync(targets));
 
     final sources = prepareDataSources(relSourceCount, targets);
     _assignIds(sources);
-    _store.writeTxnSync((isar) => _box.putAllSync(sources));
+    _store.writeTxnSync(() => _box.putAllSync(sources));
 
     assert(_box.countSync() == relSourceCount);
     assert(_boxTarget.countSync() == relTargetCount);
