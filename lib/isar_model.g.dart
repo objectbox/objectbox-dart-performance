@@ -50,7 +50,7 @@ const IsarTestEntityPlainSchema = CollectionSchema(
   getId: _isarTestEntityPlainGetId,
   getLinks: _isarTestEntityPlainGetLinks,
   attach: _isarTestEntityPlainAttach,
-  version: '3.1.0',
+  version: '3.1.0+1',
 );
 
 int _isarTestEntityPlainEstimateSize(
@@ -853,7 +853,7 @@ const IsarTestEntityIndexedSchema = CollectionSchema(
   getId: _isarTestEntityIndexedGetId,
   getLinks: _isarTestEntityIndexedGetLinks,
   attach: _isarTestEntityIndexedAttach,
-  version: '3.1.0',
+  version: '3.1.0+1',
 );
 
 int _isarTestEntityIndexedEstimateSize(
@@ -1886,7 +1886,7 @@ const IsarRelSourceEntityPlainSchema = CollectionSchema(
   getId: _isarRelSourceEntityPlainGetId,
   getLinks: _isarRelSourceEntityPlainGetLinks,
   attach: _isarRelSourceEntityPlainAttach,
-  version: '3.1.0',
+  version: '3.1.0+1',
 );
 
 int _isarRelSourceEntityPlainEstimateSize(
@@ -2587,7 +2587,7 @@ const IsarRelSourceEntityIndexedSchema = CollectionSchema(
   getId: _isarRelSourceEntityIndexedGetId,
   getLinks: _isarRelSourceEntityIndexedGetLinks,
   attach: _isarRelSourceEntityIndexedAttach,
-  version: '3.1.0',
+  version: '3.1.0+1',
 );
 
 int _isarRelSourceEntityIndexedEstimateSize(
@@ -3421,7 +3421,7 @@ const IsarRelTargetEntitySchema = CollectionSchema(
   getId: _isarRelTargetEntityGetId,
   getLinks: _isarRelTargetEntityGetLinks,
   attach: _isarRelTargetEntityAttach,
-  version: '3.1.0',
+  version: '3.1.0+1',
 );
 
 int _isarRelTargetEntityEstimateSize(
