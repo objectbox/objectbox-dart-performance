@@ -6,7 +6,7 @@ import 'executor.dart';
 import 'model.dart';
 import 'time_tracker.dart';
 
-class Executor<T extends TestEntity> extends ExecutorBase<T> {
+abstract class Executor<T extends TestEntity> extends ExecutorBase<T> {
   final Database _db;
   final String _table;
 
@@ -15,14 +15,11 @@ class Executor<T extends TestEntity> extends ExecutorBase<T> {
   Executor._(this._table, this._db, this._fromMap, TimeTracker tracker)
       : super(tracker);
 
-  static Future<Executor<T>> create<T extends TestEntity>(
-      Directory dbDir, TimeTracker tracker) async {
-    final table = T.toString();
-    return Executor._(
-        table,
-        await openDatabase(dbDir.path, version: 1,
-            onCreate: (Database db, int version) async {
-          await db.execute('''
+  static Future<Database> createDatabase(
+      Directory dbDir, String table, bool withIndexes) {
+    return openDatabase(dbDir.path, version: 1,
+        onCreate: (Database db, int version) async {
+      await db.execute('''
                   CREATE TABLE $table (
                     id integer primary key autoincrement,
                     tString text,
@@ -30,16 +27,12 @@ class Executor<T extends TestEntity> extends ExecutorBase<T> {
                     tLong int,
                     tDouble real)
                 ''');
-          if (T == TestEntityIndexed) {
-            await db.execute('CREATE INDEX ${table}_int ON $table(tInt)');
-            await db.execute('CREATE INDEX ${table}_str ON $table(tString '
-                '${ExecutorBase.caseSensitive ? '' : 'COLLATE NOCASE'})');
-          }
-        }),
-        T == TestEntityPlain
-            ? TestEntityPlain.fromMap as T Function(Map<String, dynamic>)
-            : TestEntityIndexed.fromMap as T Function(Map<String, dynamic>),
-        tracker);
+      if (withIndexes) {
+        await db.execute('CREATE INDEX ${table}_int ON $table(tInt)');
+        await db.execute('CREATE INDEX ${table}_str ON $table(tString '
+            '${ExecutorBase.caseSensitive ? '' : 'COLLATE NOCASE'})');
+      }
+    });
   }
 
   Future<void> close() => _db.close();
@@ -91,10 +84,64 @@ class Executor<T extends TestEntity> extends ExecutorBase<T> {
             }
             return result;
           }));
+}
 
-  Future<ExecutorBaseRel> createRelBenchmark() => indexed
-      ? ExecutorRel.create<RelSourceEntityIndexed>(tracker, _db)
-      : ExecutorRel.create<RelSourceEntityPlain>(tracker, _db);
+/// Using an entity without indexes
+class ExecutorPlain extends Executor<TestEntityPlain> {
+  ExecutorPlain._(
+      String table,
+      Database db,
+      TestEntityPlain Function(Map<String, dynamic>) fromMap,
+      TimeTracker tracker)
+      : super._(table, db, fromMap, tracker);
+
+  static Future<Executor<TestEntityPlain>> create(
+      Directory dbDir, TimeTracker tracker) async {
+    final table = (TestEntityPlain).toString();
+    return ExecutorPlain._(
+        table,
+        await Executor.createDatabase(dbDir, table, false),
+        TestEntityPlain.fromMap,
+        tracker);
+  }
+
+  @override
+  TestEntityPlain createEntity(
+      String tString, int tInt, int tLong, double tDouble) {
+    return TestEntityPlain(0, tString, tInt, tLong, tDouble);
+  }
+
+  Future<ExecutorBaseRel> createRelBenchmark() =>
+      Future.value(ExecutorRel.create<RelSourceEntityPlain>(tracker, _db));
+}
+
+/// Using an entity with indexes
+class ExecutorIndexed extends Executor<TestEntityIndexed> {
+  ExecutorIndexed._(
+      String table,
+      Database db,
+      TestEntityIndexed Function(Map<String, dynamic>) fromMap,
+      TimeTracker tracker)
+      : super._(table, db, fromMap, tracker);
+
+  static Future<Executor<TestEntityIndexed>> create(
+      Directory dbDir, TimeTracker tracker) async {
+    final table = (TestEntityIndexed).toString();
+    return ExecutorIndexed._(
+        table,
+        await Executor.createDatabase(dbDir, table, true),
+        TestEntityIndexed.fromMap,
+        tracker);
+  }
+
+  @override
+  TestEntityIndexed createEntity(
+      String tString, int tInt, int tLong, double tDouble) {
+    return TestEntityIndexed(0, tString, tInt, tLong, tDouble);
+  }
+
+  Future<ExecutorBaseRel> createRelBenchmark() =>
+      Future.value(ExecutorRel.create<RelSourceEntityIndexed>(tracker, _db));
 }
 
 class ExecutorRel<T extends RelSourceEntity> extends ExecutorBaseRel<T> {

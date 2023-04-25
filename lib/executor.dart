@@ -21,13 +21,11 @@ abstract class ExecutorBase<T extends TestEntity> {
 
   Future<void> close();
 
-  bool get indexed => T == TestEntityIndexed;
+  /// Create an entity with the given values.
+  T createEntity(String tString, int tInt, int tLong, double tDouble);
 
   List<T> prepareData(int count) => List.generate(
-      count,
-      (i) => indexed
-          ? TestEntityIndexed(0, 'Entity #$i', i, i, i.toDouble()) as T
-          : TestEntityPlain(0, 'Entity #$i', i, i, i.toDouble()) as T,
+      count, (i) => createEntity('Entity #$i', i, i, i.toDouble()),
       growable: false);
 
   void changeValues(List<T> items) => items.forEach((item) => item.tLong *= 2);

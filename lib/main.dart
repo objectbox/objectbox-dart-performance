@@ -9,7 +9,6 @@ import 'package:path_provider/path_provider.dart';
 import 'executor.dart';
 import 'hive_executor.dart' as hive;
 import 'isar_sync_executor.dart' as isar_sync;
-import 'model.dart';
 import 'obx_executor.dart' as obx;
 import 'sqf_executor.dart' as sqf;
 // import 'hive_lazy_executor.dart' as hive_lazy;
@@ -79,6 +78,8 @@ class _MyHomePageState extends State<MyHomePage> {
   final _operationsController = TextEditingController(text: '1000');
   final _resultsController = TextEditingController(text: '10000');
   late final TimeTracker _tracker = TimeTracker(_print);
+
+  /// The directory where a temporary directory for each benchmark is created in.
   final appDir = Completer<Directory>();
 
   var _result = '';
@@ -113,23 +114,40 @@ class _MyHomePageState extends State<MyHomePage> {
   @override
   void initState() {
     super.initState();
-    getApplicationDocumentsDirectory().then(appDir.complete);
+
+    /// Use getTemporaryDirectory instead of getApplicationDocumentsDirectory to
+    /// avoid creating and deleting many files in a potentially backed up
+    /// location on the test device.
+    getTemporaryDirectory().then((value) {
+      debugPrint("Using directory: " + value.absolute.path);
+      appDir.complete(value);
+    });
   }
 
-  Future<ExecutorBase<T>> _createExecutor<T extends TestEntity>(
-      Directory dbDir) async {
+  Future<ExecutorBase> _createExecutor(Directory dbDir, bool useIndexes) async {
     switch (_db) {
       case DbEngine.ObjectBox:
-        return Future.value(obx.Executor<T>(dbDir, _tracker));
+        if (useIndexes) {
+          return Future.value(obx.ExecutorIndexed(dbDir, _tracker));
+        } else {
+          return Future.value(obx.ExecutorPlain(dbDir, _tracker));
+        }
       case DbEngine.sqflite:
-        return sqf.Executor.create<T>(
-            Directory(path.join(dbDir.path, 'bench.db')), _tracker);
+        final dbFile = Directory(path.join(dbDir.path, 'bench.db'));
+        if (useIndexes) {
+          return sqf.ExecutorIndexed.create(dbFile, _tracker);
+        } else {
+          return sqf.ExecutorPlain.create(dbFile, _tracker);
+        }
       case DbEngine.Hive:
-        return hive.Executor.create<T>(dbDir, _tracker);
+        // No explicit index support for Hive.
+        return hive.Executor.create(dbDir, _tracker);
       case DbEngine.IsarSync:
-        return isar_sync.Executor.create<T>(dbDir, _tracker);
-      // case 4:
-      //   return hive_lazy.Executor.create<T>(dbDir, _tracker);
+        if (useIndexes) {
+          return isar_sync.ExecutorIndexed.create(dbDir, _tracker);
+        } else {
+          return isar_sync.ExecutorPlain.create(dbDir, _tracker);
+        }
       default:
         throw Exception('Unknown executor');
     }
@@ -155,11 +173,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
     ExecutorBase? executor;
     try {
-      if (indexed) {
-        executor = await _createExecutor<TestEntityIndexed>(dbDir);
-      } else {
-        executor = await _createExecutor<TestEntityPlain>(dbDir);
-      }
+      executor = await _createExecutor(dbDir, indexed);
       await _runBenchmarkOn(executor);
     } finally {
       await executor?.close();

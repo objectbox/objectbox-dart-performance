@@ -5,37 +5,11 @@ import 'model.dart';
 import 'objectbox.g.dart';
 import 'time_tracker.dart';
 
-class Executor<T extends TestEntity> extends ExecutorBase<T> {
+abstract class Executor<T extends TestEntity> extends ExecutorBase<T> {
   final Store store;
   final Box<T> box;
   final Query<T> queryStringEq;
   final void Function(String) queryStringEqSetValue;
-
-  factory Executor(Directory dbDir, TimeTracker tracker) {
-    final store = Store(getObjectBoxModel(),
-        directory: dbDir.path,
-        queriesCaseSensitiveDefault: ExecutorBase.caseSensitive);
-    late final Query<T> queryStringEq;
-    late final void Function(String) queryStringEqSetValue;
-    if (T == TestEntityPlain) {
-      final query = store
-          .box<TestEntityPlain>()
-          .query(TestEntityPlain_.tString.equals(''))
-          .build();
-      final queryParam = query.param(TestEntityPlain_.tString);
-      queryStringEqSetValue = (String val) => queryParam.value = val;
-      queryStringEq = query as Query<T>;
-    } else {
-      final query = store
-          .box<TestEntityIndexed>()
-          .query(TestEntityIndexed_.tString.equals(''))
-          .build();
-      final queryParam = query.param(TestEntityIndexed_.tString);
-      queryStringEqSetValue = (String val) => queryParam.value = val;
-      queryStringEq = query as Query<T>;
-    }
-    return Executor._(tracker, store, queryStringEq, queryStringEqSetValue);
-  }
 
   Executor._(TimeTracker tracker, this.store, this.queryStringEq,
       this.queryStringEqSetValue)
@@ -72,10 +46,76 @@ class Executor<T extends TestEntity> extends ExecutorBase<T> {
                 }
                 return result;
               })));
+}
 
-  Future<ExecutorBaseRel> createRelBenchmark() => Future.value(indexed
-      ? ExecutorRel<RelSourceEntityIndexed>(store, tracker)
-      : ExecutorRel<RelSourceEntityPlain>(store, tracker));
+/// Using an entity without indexes
+class ExecutorPlain extends Executor<TestEntityPlain> {
+  ExecutorPlain._(
+      TimeTracker tracker,
+      Store store,
+      Query<TestEntityPlain> queryStringEq,
+      void Function(String) queryStringEqSetValue)
+      : super._(tracker, store, queryStringEq, queryStringEqSetValue);
+
+  factory ExecutorPlain(Directory dbDir, TimeTracker tracker) {
+    final store = Store(getObjectBoxModel(),
+        directory: dbDir.path,
+        queriesCaseSensitiveDefault: ExecutorBase.caseSensitive);
+
+    final query = store
+        .box<TestEntityPlain>()
+        .query(TestEntityPlain_.tString.equals(''))
+        .build();
+    final queryParam = query.param(TestEntityPlain_.tString);
+    final void Function(String) queryStringEqSetValue =
+        (String val) => queryParam.value = val;
+
+    return ExecutorPlain._(tracker, store, query, queryStringEqSetValue);
+  }
+
+  @override
+  TestEntityPlain createEntity(
+      String tString, int tInt, int tLong, double tDouble) {
+    return TestEntityPlain(0, tString, tInt, tLong, tDouble);
+  }
+
+  Future<ExecutorBaseRel> createRelBenchmark() =>
+      Future.value(ExecutorRel<RelSourceEntityPlain>(store, tracker));
+}
+
+/// Using an entity with indexes
+class ExecutorIndexed extends Executor<TestEntityIndexed> {
+  ExecutorIndexed._(
+      TimeTracker tracker,
+      Store store,
+      Query<TestEntityIndexed> queryStringEq,
+      void Function(String) queryStringEqSetValue)
+      : super._(tracker, store, queryStringEq, queryStringEqSetValue);
+
+  factory ExecutorIndexed(Directory dbDir, TimeTracker tracker) {
+    final store = Store(getObjectBoxModel(),
+        directory: dbDir.path,
+        queriesCaseSensitiveDefault: ExecutorBase.caseSensitive);
+
+    final query = store
+        .box<TestEntityIndexed>()
+        .query(TestEntityIndexed_.tString.equals(''))
+        .build();
+    final queryParam = query.param(TestEntityIndexed_.tString);
+    final void Function(String) queryStringEqSetValue =
+        (String val) => queryParam.value = val;
+
+    return ExecutorIndexed._(tracker, store, query, queryStringEqSetValue);
+  }
+
+  @override
+  TestEntityIndexed createEntity(
+      String tString, int tInt, int tLong, double tDouble) {
+    return TestEntityIndexed(0, tString, tInt, tLong, tDouble);
+  }
+
+  Future<ExecutorBaseRel> createRelBenchmark() =>
+      Future.value(ExecutorRel<RelSourceEntityIndexed>(store, tracker));
 }
 
 class ExecutorRel<T extends RelSourceEntity> extends ExecutorBaseRel<T> {

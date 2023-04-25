@@ -7,7 +7,7 @@ import Foundation
 
 import isar_flutter_libs
 import objectbox_flutter_libs
-import path_provider_macos
+import path_provider_foundation
 import sqflite
 
 func RegisterGeneratedPlugins(registry: FlutterPluginRegistry) {
