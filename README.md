@@ -7,6 +7,7 @@ As usual run `flutter pub get`.
 ## Running
 
 Make sure to run the app in release mode to avoid any performance penalties from debug mode.
+(Note: release mode is not supported on the iOS simulator, a real device is required.)
 
 To run in release mode with Android Studio connect a device or start an emulator, then
 Run > Flutter Run 'main.dart' in Release Mode.
