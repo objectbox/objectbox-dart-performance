@@ -162,7 +162,7 @@ class ExecutorRel<T extends RelSourceEntity> extends ExecutorBaseRel<T> {
   static Future<ExecutorRel<T>> create<T extends RelSourceEntity>(
       TimeTracker tracker, Database db) async {
     final table = T.toString();
-    final tableTarget = 'RelTargetEntity';
+    const tableTarget = 'RelTargetEntity';
 
     await db.execute('''
                   CREATE TABLE $table (

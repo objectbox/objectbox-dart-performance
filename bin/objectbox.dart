@@ -1,3 +1,5 @@
+// ignore_for_file: avoid_print
+
 import 'dart:io';
 
 import 'package:args/args.dart';
@@ -7,9 +9,9 @@ import 'package:benchapp/time_tracker.dart';
 void main(List<String> arguments) async {
   exitCode = 0; // presume success
 
-  final argDb = 'db';
-  final argCount = 'count';
-  final argRuns = 'runs';
+  const argDb = 'db';
+  const argCount = 'count';
+  const argRuns = 'runs';
 
   final parser = ArgParser()
     ..addOption(argDb, defaultsTo: 'benchmark-db', help: 'database directory')
