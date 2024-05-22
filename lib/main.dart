@@ -11,14 +11,17 @@ import 'hive_executor.dart' as hive;
 import 'isar_sync_executor.dart' as isar_sync;
 import 'obx_executor.dart' as obx;
 import 'sqf_executor.dart' as sqf;
+
 // import 'hive_lazy_executor.dart' as hive_lazy;
 import 'time_tracker.dart';
 
 void main() {
-  runApp(MyApp());
+  runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+
   // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
@@ -40,13 +43,13 @@ class MyApp extends StatelessWidget {
         // closer together (more dense) than on mobile platforms.
         visualDensity: VisualDensity.adaptivePlatformDensity,
       ),
-      home: MyHomePage(title: 'DB Benchmark'),
+      home: const MyHomePage(title: 'DB Benchmark'),
     );
   }
 }
 
 class MyHomePage extends StatefulWidget {
-  MyHomePage({Key? key, required this.title}) : super(key: key);
+  const MyHomePage({super.key, required this.title});
 
   // This widget is the home page of your application. It is stateful, meaning
   // that it has a State object (defined below) that contains fields that affect
@@ -60,7 +63,7 @@ class MyHomePage extends StatefulWidget {
   final String title;
 
   @override
-  _MyHomePageState createState() => _MyHomePageState();
+  State<MyHomePage> createState() => _MyHomePageState();
 }
 
 enum DbEngine { ObjectBox, sqflite, Hive, IsarSync }
@@ -119,7 +122,7 @@ class _MyHomePageState extends State<MyHomePage> {
     /// avoid creating and deleting many files in a potentially backed up
     /// location on the test device.
     getTemporaryDirectory().then((value) {
-      debugPrint("Using directory: " + value.absolute.path);
+      debugPrint("Using directory: ${value.absolute.path}");
       appDir.complete(value);
     });
   }
@@ -183,7 +186,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
   Future<void> printResult(String value) async {
     setState(() => _result = value);
-    await Future.delayed(Duration(seconds: 0)); // yield to re-render
+    await Future.delayed(const Duration(seconds: 0)); // yield to re-render
   }
 
   /// Waits for the given future to complete. Returns true if the benchmark
@@ -320,14 +323,14 @@ class _MyHomePageState extends State<MyHomePage> {
 
           final ids = inserts.map((e) => e.id).toList(growable: false);
 
-          final randomSlice = (List<int> list, int length) {
+          randomSlice(List<int> list, int length) {
             final start = list.length == length
                 ? 0
                 : random.nextInt(list.length - length);
             final result = list.sublist(start, start + length);
             assert(result.length == length);
             return result;
-          };
+          }
 
           int resultCount = 0;
           for (var i = 0; i < runs && _state == RunState.running; i++) {
@@ -385,7 +388,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
   Future<bool> _testBenchmark(ExecutorBase bench) async {
     try {
-      final count = 100;
+      const count = 100;
       await bench.test(
           count: count,
           qString: _mode == Mode.Queries
@@ -416,18 +419,17 @@ class _MyHomePageState extends State<MyHomePage> {
       body: Center(
         // Center is a layout widget. It takes a single child and positions it
         // in the middle of the parent.
-        child: Container(
-            child: Column(
+        child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Row(children: [
-              Spacer(),
+              const Spacer(),
               DropdownButton(
                   value: _db,
                   items: enumDropDownItems(DbEngine.values),
                   onChanged: (DbEngine? value) =>
                       configure(value!, _mode, _indexed)),
-              Spacer(),
+              const Spacer(),
               DropdownButton(
                   value: _mode,
                   // TODO items: enumDropDownItems(Mode.values),
@@ -444,10 +446,10 @@ class _MyHomePageState extends State<MyHomePage> {
                           (mode != Mode.Queries && mode != Mode.QueryById))
                       .toList()),
                   onChanged: (Mode? value) => configure(_db, value!, _indexed)),
-              Spacer(),
-              Text('Index'),
+              const Spacer(),
+              const Text('Index'),
               if (_db == DbEngine.Hive)
-                Text(' not available')
+                const Text(' not available')
               else
                 Switch(
                   value: _indexed,
@@ -455,62 +457,61 @@ class _MyHomePageState extends State<MyHomePage> {
                   activeTrackColor: Colors.yellow,
                   activeColor: Colors.orangeAccent,
                 ),
-              Spacer(),
+              const Spacer(),
             ]),
             Row(children: [
-              Spacer(),
+              const Spacer(),
               Expanded(
                   child: TextField(
                 keyboardType: TextInputType.number,
                 controller: _runsController,
-                decoration: InputDecoration(
+                decoration: const InputDecoration(
                   labelText: 'Runs',
                 ),
               )),
-              if (_mode == Mode.Queries) Spacer(),
+              if (_mode == Mode.Queries) const Spacer(),
               if (_mode == Mode.Queries)
                 Expanded(
                     child: TextField(
                   keyboardType: TextInputType.number,
                   controller: _operationsController,
-                  decoration: InputDecoration(
+                  decoration: const InputDecoration(
                     labelText: 'Operations',
                   ),
                 )),
-              if (_mode == Mode.QueryById) Spacer(),
+              if (_mode == Mode.QueryById) const Spacer(),
               if (_mode == Mode.QueryById)
                 Expanded(
                     child: TextField(
                   keyboardType: TextInputType.number,
                   controller: _resultsController,
-                  decoration: InputDecoration(
+                  decoration: const InputDecoration(
                     labelText: 'Results',
                   ),
                 )),
-              Spacer(),
+              const Spacer(),
               Expanded(
                   child: TextField(
                 keyboardType: TextInputType.number,
                 controller: _objectsController,
-                decoration: InputDecoration(
+                decoration: const InputDecoration(
                   labelText: 'Objects',
                 ),
               )),
-              Spacer(),
+              const Spacer(),
             ]),
-            Spacer(),
+            const Spacer(),
             Text(_result),
-            Spacer(),
+            const Spacer(),
             Container(
-                padding: EdgeInsets.symmetric(horizontal: 30),
+                padding: const EdgeInsets.symmetric(horizontal: 30),
                 child: Table(
-                    border: TableBorder(
-                        horizontalInside:
-                            BorderSide(color: const Color(0x55000000))),
+                    border: const TableBorder(
+                        horizontalInside: BorderSide(color: Color(0x55000000))),
                     children: _resultRows)),
-            Spacer(),
+            const Spacer(),
           ],
-        )),
+        ),
       ),
       floatingActionButton: _state == RunState.stopping
           ? null
@@ -518,12 +519,12 @@ class _MyHomePageState extends State<MyHomePage> {
               ? FloatingActionButton(
                   onPressed: _stopBenchmark,
                   tooltip: 'Stop',
-                  child: Icon(Icons.stop),
+                  child: const Icon(Icons.stop),
                 )
               : FloatingActionButton(
                   onPressed: _runBenchmark,
                   tooltip: 'Start',
-                  child: Icon(Icons.play_arrow),
+                  child: const Icon(Icons.play_arrow),
                 ), // This trailing comma makes auto-formatting nicer for build methods.
     );
   }
@@ -531,8 +532,8 @@ class _MyHomePageState extends State<MyHomePage> {
 
 List<DropdownMenuItem<T>> enumDropDownItems<T>(List<T> values) => values
     .map((dynamic e) => DropdownMenuItem<T>(
+          value: e,
           child:
               Text(e.toString().substring(e.runtimeType.toString().length + 1)),
-          value: e,
         ))
     .toList();

@@ -23,6 +23,7 @@ class Executor extends ExecutorBase<TestEntityPlain> {
         tracker);
   }
 
+  @override
   Future<void> close() async => await _box.close();
 
   @override
@@ -31,33 +32,34 @@ class Executor extends ExecutorBase<TestEntityPlain> {
     return TestEntityPlain(0, tString, tInt, tLong, tDouble);
   }
 
+  @override
   Future<void> insertMany(List<TestEntityPlain> items) async =>
       tracker.trackAsync('insertMany', () async {
         int id = 1;
         final itemsById = <int, TestEntityPlain>{};
-        items.forEach((TestEntityPlain o) {
+        for (var o in items) {
           if (o.id == 0) o.id = id++;
           itemsById[o.id] = o;
-        });
+        }
         return await _box.putAll(itemsById);
       });
 
+  @override
   Future<void> updateMany(List<TestEntityPlain> items) async =>
-      tracker.trackAsync(
-          'updateMany',
-          () async => await _box.putAll(Map<int, TestEntityPlain>.fromIterable(
-              items,
-              key: (o) => o.id,
-              value: (o) => o)));
+      tracker.trackAsync('updateMany',
+          () async => await _box.putAll({for (var o in items) o.id: o}));
 
-  Future<List<TestEntityPlain>> readAll(List<int> ids) =>
+  @override
+  Future<List<TestEntityPlain>> readAll(List<int> optionalIds) =>
       Future.value(tracker.track('readAll', () => _box.values.toList()));
 
+  @override
   Future<List<TestEntityPlain?>> queryById(List<int> ids,
           [String? benchmarkQualifier]) =>
-      Future.value(tracker.track('queryById' + (benchmarkQualifier ?? ''),
+      Future.value(tracker.track('queryById${benchmarkQualifier ?? ''}',
           () => ids.map(_box.get).toList()));
 
+  @override
   Future<void> removeMany(List<int> ids) async =>
       tracker.trackAsync('removeMany', () async {
         await _box.deleteAll(ids);
@@ -65,6 +67,7 @@ class Executor extends ExecutorBase<TestEntityPlain> {
       });
 
   // Hive doesn't have queries -> let's emulate
+  @override
   Future<List<TestEntityPlain>> queryStringEquals(List<String> values) {
     if (!ExecutorBase.caseSensitive) {
       values = values.map((e) => e.toLowerCase()).toList(growable: false);
@@ -83,6 +86,7 @@ class Executor extends ExecutorBase<TestEntityPlain> {
     }));
   }
 
+  @override
   Future<ExecutorBaseRel> createRelBenchmark() =>
       ExecutorRel.create<RelSourceEntityPlain>(tracker, _dir);
 }
@@ -103,14 +107,15 @@ class ExecutorRel<T extends RelSourceEntity> extends ExecutorBaseRel<T> {
         await Hive.openBox('RelTargetEntity', path: path));
   }
 
-  ExecutorRel._(TimeTracker tracker, this._box, this._boxTarget)
-      : super(tracker);
+  ExecutorRel._(super.tracker, this._box, this._boxTarget);
 
+  @override
   Future<void> close() async {
     await _box.close();
     await _boxTarget.close();
   }
 
+  @override
   Future<void> insertData(int relSourceCount, int relTargetCount) async {
     final targets = prepareDataTargets(relTargetCount);
     await _boxTarget.putAll(_itemsById(targets));
@@ -121,12 +126,13 @@ class ExecutorRel<T extends RelSourceEntity> extends ExecutorBaseRel<T> {
     assert(_boxTarget.length == relTargetCount);
   }
 
+  @override
   Future<List<T>> queryWithLinks(List<ConfigQueryWithLinks> args) {
     if (!ExecutorBase.caseSensitive) {
-      args.forEach((config) {
-        config.sourceStringEquals..toLowerCase();
-        config.targetStringEquals..toLowerCase();
-      });
+      for (var config in args) {
+        config.sourceStringEquals.toLowerCase();
+        config.targetStringEquals.toLowerCase();
+      }
     }
 
     return Future.value(tracker.track('queryWithLinks', () {
@@ -159,9 +165,9 @@ class ExecutorRel<T extends RelSourceEntity> extends ExecutorBaseRel<T> {
 Map<int, EntityT> _itemsById<EntityT>(List<EntityWithSettableId> list) {
   final result = <int, EntityT>{};
   var id = 1;
-  list.forEach((EntityWithSettableId o) {
+  for (var o in list) {
     if (o.id == 0) o.id = id++;
     result[o.id] = o as EntityT;
-  });
+  }
   return result;
 }

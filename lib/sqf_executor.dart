@@ -35,45 +35,56 @@ abstract class Executor<T extends TestEntity> extends ExecutorBase<T> {
     });
   }
 
+  @override
   Future<void> close() => _db.close();
 
   // TODO use the generic _insertMany() if it doesn't decrease performance
+  @override
   Future<void> insertMany(List<T> items) async =>
       tracker.trackAsync('insertMany', () async {
         final tx = _db.batch();
-        items.forEach((object) => tx.insert(_table, TestEntity.toMap(object)));
+        for (var object in items) {
+          tx.insert(_table, TestEntity.toMap(object));
+        }
         final ids = await tx.commit();
         for (int i = 0; i < ids.length; i++) {
           items[i].id = ids[i] as int;
         }
       });
 
+  @override
   Future<void> updateMany(List<T> items) async =>
       tracker.trackAsync('updateMany', () async {
         final tx = _db.batch();
-        items.forEach((object) => tx.update(_table, TestEntity.toMap(object),
-            where: 'id = ?', whereArgs: [object.id]));
+        for (var object in items) {
+          tx.update(_table, TestEntity.toMap(object),
+              where: 'id = ?', whereArgs: [object.id]);
+        }
         await tx.commit();
       });
 
-  Future<List<T>> _query<T>(DatabaseExecutor db,
+  Future<List<T>> _query(DatabaseExecutor db,
           T Function(Map<String, dynamic>) reader, String where,
           [List<Object?>? whereArgs]) async =>
       (await db.query(_table, where: where, whereArgs: whereArgs))
           .map(reader)
           .toList();
 
-  Future<List<T>> readAll(List<int> ids) => tracker.trackAsync(
+  @override
+  Future<List<T>> readAll(List<int> optionalIds) => tracker.trackAsync(
       'readAll', () async => (await _db.query(_table)).map(_fromMap).toList());
 
+  @override
   Future<List<T?>> queryById(List<int> ids, [String? benchmarkQualifier]) =>
-      tracker.trackAsync('queryById' + (benchmarkQualifier ?? ''),
+      tracker.trackAsync('queryById${benchmarkQualifier ?? ''}',
           () async => await _query(_db, _fromMap, 'id in (${ids.join(',')})'));
 
+  @override
   Future<void> removeMany(List<int> ids) async => tracker.trackAsync(
       'removeMany',
       () async => await _db.delete(_table, where: 'id in (${ids.join(',')})'));
 
+  @override
   Future<List<T>> queryStringEquals(List<String> values) => tracker.trackAsync(
       'queryStringEquals',
       () async => _db.transaction((txn) async {
@@ -88,12 +99,8 @@ abstract class Executor<T extends TestEntity> extends ExecutorBase<T> {
 
 /// Using an entity without indexes
 class ExecutorPlain extends Executor<TestEntityPlain> {
-  ExecutorPlain._(
-      String table,
-      Database db,
-      TestEntityPlain Function(Map<String, dynamic>) fromMap,
-      TimeTracker tracker)
-      : super._(table, db, fromMap, tracker);
+  ExecutorPlain._(super.table, super.db, super.fromMap, super.tracker)
+      : super._();
 
   static Future<Executor<TestEntityPlain>> create(
       Directory dbDir, TimeTracker tracker) async {
@@ -111,18 +118,15 @@ class ExecutorPlain extends Executor<TestEntityPlain> {
     return TestEntityPlain(0, tString, tInt, tLong, tDouble);
   }
 
+  @override
   Future<ExecutorBaseRel> createRelBenchmark() =>
       Future.value(ExecutorRel.create<RelSourceEntityPlain>(tracker, _db));
 }
 
 /// Using an entity with indexes
 class ExecutorIndexed extends Executor<TestEntityIndexed> {
-  ExecutorIndexed._(
-      String table,
-      Database db,
-      TestEntityIndexed Function(Map<String, dynamic>) fromMap,
-      TimeTracker tracker)
-      : super._(table, db, fromMap, tracker);
+  ExecutorIndexed._(super.table, super.db, super.fromMap, super.tracker)
+      : super._();
 
   static Future<Executor<TestEntityIndexed>> create(
       Directory dbDir, TimeTracker tracker) async {
@@ -140,6 +144,7 @@ class ExecutorIndexed extends Executor<TestEntityIndexed> {
     return TestEntityIndexed(0, tString, tInt, tLong, tDouble);
   }
 
+  @override
   Future<ExecutorBaseRel> createRelBenchmark() =>
       Future.value(ExecutorRel.create<RelSourceEntityIndexed>(tracker, _db));
 }
@@ -153,7 +158,7 @@ class ExecutorRel<T extends RelSourceEntity> extends ExecutorBaseRel<T> {
   static Future<ExecutorRel<T>> create<T extends RelSourceEntity>(
       TimeTracker tracker, Database db) async {
     final table = T.toString();
-    final tableTarget = 'RelTargetEntity';
+    const tableTarget = 'RelTargetEntity';
 
     await db.execute('''
                   CREATE TABLE $table (
@@ -188,12 +193,13 @@ class ExecutorRel<T extends RelSourceEntity> extends ExecutorBaseRel<T> {
     );
   }
 
-  ExecutorRel._(TimeTracker tracker, this._db, this._table, this._tableTarget,
-      this._fromMap)
-      : super(tracker);
+  ExecutorRel._(
+      super.tracker, this._db, this._table, this._tableTarget, this._fromMap);
 
+  @override
   Future<void> close() async {}
 
+  @override
   Future<void> insertData(int relSourceCount, int relTargetCount) async {
     final targets = prepareDataTargets(relTargetCount);
     await _insertMany(_db, targets, RelTargetEntity.toMap);
@@ -202,6 +208,7 @@ class ExecutorRel<T extends RelSourceEntity> extends ExecutorBaseRel<T> {
     await _insertMany(_db, sources, RelSourceEntity.toMap);
   }
 
+  @override
   Future<List<T>> queryWithLinks(List<ConfigQueryWithLinks> args) async =>
       tracker.trackAsync(
           'queryWithLinks',
@@ -228,8 +235,9 @@ class ExecutorRel<T extends RelSourceEntity> extends ExecutorBaseRel<T> {
 Future<void> _insertMany<T extends EntityWithSettableId>(
     Database db, List<T> items, Map<String, dynamic> Function(T) toMap) async {
   final tx = db.batch();
-  items.forEach(
-      (object) => tx.insert(items.first.runtimeType.toString(), toMap(object)));
+  for (var object in items) {
+    tx.insert(items.first.runtimeType.toString(), toMap(object));
+  }
   final ids = await tx.commit();
   for (int i = 0; i < ids.length; i++) {
     items[i].id = ids[i] as int;

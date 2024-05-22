@@ -11,29 +11,35 @@ abstract class Executor<T extends TestEntity> extends ExecutorBase<T> {
   final Query<T> queryStringEq;
   final void Function(String) queryStringEqSetValue;
 
-  Executor._(TimeTracker tracker, this.store, this.queryStringEq,
-      this.queryStringEqSetValue)
-      : box = store.box(),
-        super(tracker);
+  Executor._(
+      super.tracker, this.store, this.queryStringEq, this.queryStringEqSetValue)
+      : box = store.box();
 
+  @override
   Future<void> close() async => store.close();
 
+  @override
   Future<void> insertMany(List<T> items) =>
       Future.value(tracker.track('insertMany', () => box.putMany(items)));
 
+  @override
   Future<void> updateMany(List<T> items) =>
       Future.value(tracker.track('updateMany', () => box.putMany(items)));
 
-  Future<List<T>> readAll(List<int> ids) =>
+  @override
+  Future<List<T>> readAll(List<int> optionalIds) =>
       Future.value(tracker.track('readAll', () => box.getAll()));
 
+  @override
   Future<List<T?>> queryById(List<int> ids, [String? benchmarkQualifier]) =>
       Future.value(tracker.track(
-          'queryById' + (benchmarkQualifier ?? ''), () => box.getMany(ids)));
+          'queryById${benchmarkQualifier ?? ''}', () => box.getMany(ids)));
 
+  @override
   Future<void> removeMany(List<int> ids) =>
       Future.value(tracker.track('removeMany', () => box.removeMany(ids)));
 
+  @override
   Future<List<T>> queryStringEquals(List<String> values) =>
       Future.value(tracker.track(
           'queryStringEquals',
@@ -50,12 +56,9 @@ abstract class Executor<T extends TestEntity> extends ExecutorBase<T> {
 
 /// Using an entity without indexes
 class ExecutorPlain extends Executor<TestEntityPlain> {
-  ExecutorPlain._(
-      TimeTracker tracker,
-      Store store,
-      Query<TestEntityPlain> queryStringEq,
-      void Function(String) queryStringEqSetValue)
-      : super._(tracker, store, queryStringEq, queryStringEqSetValue);
+  ExecutorPlain._(super.tracker, super.store, super.queryStringEq,
+      super.queryStringEqSetValue)
+      : super._();
 
   factory ExecutorPlain(Directory dbDir, TimeTracker tracker) {
     final store = Store(getObjectBoxModel(),
@@ -67,8 +70,7 @@ class ExecutorPlain extends Executor<TestEntityPlain> {
         .query(TestEntityPlain_.tString.equals(''))
         .build();
     final queryParam = query.param(TestEntityPlain_.tString);
-    final void Function(String) queryStringEqSetValue =
-        (String val) => queryParam.value = val;
+    queryStringEqSetValue(String val) => queryParam.value = val;
 
     return ExecutorPlain._(tracker, store, query, queryStringEqSetValue);
   }
@@ -79,18 +81,16 @@ class ExecutorPlain extends Executor<TestEntityPlain> {
     return TestEntityPlain(0, tString, tInt, tLong, tDouble);
   }
 
+  @override
   Future<ExecutorBaseRel> createRelBenchmark() =>
       Future.value(ExecutorRel<RelSourceEntityPlain>(store, tracker));
 }
 
 /// Using an entity with indexes
 class ExecutorIndexed extends Executor<TestEntityIndexed> {
-  ExecutorIndexed._(
-      TimeTracker tracker,
-      Store store,
-      Query<TestEntityIndexed> queryStringEq,
-      void Function(String) queryStringEqSetValue)
-      : super._(tracker, store, queryStringEq, queryStringEqSetValue);
+  ExecutorIndexed._(super.tracker, super.store, super.queryStringEq,
+      super.queryStringEqSetValue)
+      : super._();
 
   factory ExecutorIndexed(Directory dbDir, TimeTracker tracker) {
     final store = Store(getObjectBoxModel(),
@@ -102,8 +102,7 @@ class ExecutorIndexed extends Executor<TestEntityIndexed> {
         .query(TestEntityIndexed_.tString.equals(''))
         .build();
     final queryParam = query.param(TestEntityIndexed_.tString);
-    final void Function(String) queryStringEqSetValue =
-        (String val) => queryParam.value = val;
+    queryStringEqSetValue(String val) => queryParam.value = val;
 
     return ExecutorIndexed._(tracker, store, query, queryStringEqSetValue);
   }
@@ -114,6 +113,7 @@ class ExecutorIndexed extends Executor<TestEntityIndexed> {
     return TestEntityIndexed(0, tString, tInt, tLong, tDouble);
   }
 
+  @override
   Future<ExecutorBaseRel> createRelBenchmark() =>
       Future.value(ExecutorRel<RelSourceEntityIndexed>(store, tracker));
 }
@@ -165,15 +165,15 @@ class ExecutorRel<T extends RelSourceEntity> extends ExecutorBaseRel<T> {
     return ExecutorRel._(tracker, store, queryT, querySetParams);
   }
 
-  ExecutorRel._(
-      TimeTracker tracker, this.store, this.query, this.querySetParams)
-      : box = store.box(),
-        super(tracker);
+  ExecutorRel._(super.tracker, this.store, this.query, this.querySetParams)
+      : box = store.box();
 
+  @override
   Future<void> close() async {
     // Do nothing, store is closed by Executor.
   }
 
+  @override
   Future<void> insertData(int relSourceCount, int relTargetCount) =>
       Future.sync(() {
         final targets = prepareDataTargets(relTargetCount);
@@ -184,6 +184,7 @@ class ExecutorRel<T extends RelSourceEntity> extends ExecutorBaseRel<T> {
         assert(store.box<RelTargetEntity>().count() == relTargetCount);
       });
 
+  @override
   Future<List<T>> queryWithLinks(List<ConfigQueryWithLinks> args) =>
       Future.value(tracker.track(
           'queryWithLinks',

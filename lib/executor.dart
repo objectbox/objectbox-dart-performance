@@ -28,7 +28,11 @@ abstract class ExecutorBase<T extends TestEntity> {
       count, (i) => createEntity('Entity #$i', i, i, i.toDouble()),
       growable: false);
 
-  void changeValues(List<T> items) => items.forEach((item) => item.tLong *= 2);
+  void changeValues(List<T> items) {
+    for (var item in items) {
+      item.tLong *= 2;
+    }
+  }
 
   List<T> allNotNull(List<T?> items) =>
       items.map((e) => e!).toList(growable: false);
@@ -45,13 +49,13 @@ abstract class ExecutorBase<T extends TestEntity> {
 
   Future<void> removeMany(List<int> ids);
 
-  Future<List<T>> queryStringEquals(List<String> val) =>
+  Future<List<T>> queryStringEquals(List<String> values) =>
       throw UnimplementedError();
 
   /// Verifies that the executor works as expected (returns proper results).
   Future<void> test({required int count, String? qString}) =>
       Future.sync(() async {
-        final checkCount = (String message, Iterable list, int count) =>
+        checkCount(String message, Iterable list, int count) =>
             RangeError.checkValueInInterval(list.length, count, count, message);
 
         final inserts = prepareData(count);

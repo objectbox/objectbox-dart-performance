@@ -15,8 +15,10 @@ abstract class Executor<T extends TestEntity> extends ExecutorBase<T> {
       : _box = _store.collection(),
         super(tracker);
 
+  @override
   Future<void> close() async => await _store.close();
 
+  @override
   Future<void> insertMany(List<T> items) => Future.value(
         tracker.track(
           'insertMany',
@@ -29,18 +31,22 @@ abstract class Executor<T extends TestEntity> extends ExecutorBase<T> {
         ),
       );
 
+  @override
   Future<void> updateMany(List<T> items) => Future.value(tracker.track(
       'updateMany', () => _store.writeTxnSync(() => _box.putAllSync(items))));
 
   // Note: get all is not supported in isar (v2.5.0), instead
   // use query with no conditions as suggested in Quickstart.
+  @override
   Future<List<T?>> readAll(List<int> optionalIds) =>
       Future.value(tracker.track('readAll', () => _box.where().findAllSync()));
 
+  @override
   Future<List<T?>> queryById(List<int> ids, [String? benchmarkQualifier]) =>
-      Future.value(tracker.track('queryById' + (benchmarkQualifier ?? ''),
-          () => _box.getAllSync(ids)));
+      Future.value(tracker.track(
+          'queryById${benchmarkQualifier ?? ''}', () => _box.getAllSync(ids)));
 
+  @override
   Future<void> removeMany(List<int> ids) => Future.value(
         tracker.track('removeMany',
             () => _store.writeTxnSync(() => _box.deleteAllSync(ids))),
@@ -49,7 +55,7 @@ abstract class Executor<T extends TestEntity> extends ExecutorBase<T> {
 
 /// Using an entity without indexes
 class ExecutorPlain extends Executor<IsarTestEntityPlain> {
-  ExecutorPlain._(Isar store, TimeTracker tracker) : super._(store, tracker);
+  ExecutorPlain._(super.store, super.tracker) : super._();
 
   static Future<Executor<IsarTestEntityPlain>> create(
       Directory dbDir, TimeTracker tracker) async {
@@ -64,11 +70,13 @@ class ExecutorPlain extends Executor<IsarTestEntityPlain> {
     return ExecutorPlain._(isar, tracker);
   }
 
+  @override
   IsarTestEntityPlain createEntity(
       String tString, int tInt, int tLong, double tDouble) {
     return IsarTestEntityPlain(0, tString, tInt, tLong, tDouble);
   }
 
+  @override
   Future<List<IsarTestEntityPlain>> queryStringEquals(
           List<String> values) async =>
       Future.value(tracker.track('queryStringEquals', () {
@@ -85,13 +93,14 @@ class ExecutorPlain extends Executor<IsarTestEntityPlain> {
         return result;
       }));
 
+  @override
   Future<ExecutorBaseRel> createRelBenchmark() =>
       Future.value(ExecutorRel<IsarRelSourceEntityPlain>._(tracker, _store));
 }
 
 /// Using an entity with indexes
 class ExecutorIndexed extends Executor<IsarTestEntityIndexed> {
-  ExecutorIndexed._(Isar store, TimeTracker tracker) : super._(store, tracker);
+  ExecutorIndexed._(super.store, super.tracker) : super._();
 
   static Future<Executor<IsarTestEntityIndexed>> create(
       Directory dbDir, TimeTracker tracker) async {
@@ -106,11 +115,13 @@ class ExecutorIndexed extends Executor<IsarTestEntityIndexed> {
     return ExecutorIndexed._(isar, tracker);
   }
 
+  @override
   IsarTestEntityIndexed createEntity(
       String tString, int tInt, int tLong, double tDouble) {
     return IsarTestEntityIndexed(0, tString, tInt, tLong, tDouble);
   }
 
+  @override
   Future<List<IsarTestEntityIndexed>> queryStringEquals(
           List<String> values) async =>
       Future.value(tracker.track('queryStringEquals', () {
@@ -125,6 +136,7 @@ class ExecutorIndexed extends Executor<IsarTestEntityIndexed> {
         return result;
       }));
 
+  @override
   Future<ExecutorBaseRel> createRelBenchmark() =>
       Future.value(ExecutorRel<IsarRelSourceEntityIndexed>._(tracker, _store));
 }
@@ -134,13 +146,14 @@ class ExecutorRel<T extends RelSourceEntity> extends ExecutorBaseRel<T> {
   final IsarCollection<T> _box;
   final IsarCollection<IsarRelTargetEntity> _boxTarget;
 
-  ExecutorRel._(TimeTracker tracker, this._store)
+  ExecutorRel._(super.tracker, this._store)
       : _box = _store.collection(),
-        _boxTarget = _store.isarRelTargetEntitys,
-        super(tracker);
+        _boxTarget = _store.isarRelTargetEntitys;
 
+  @override
   Future<void> close() async => Future.value();
 
+  @override
   Future<void> insertData(int relSourceCount, int relTargetCount) async {
     final targets = prepareDataTargetsIsar(relTargetCount);
     _assignIds(targets);
@@ -171,6 +184,7 @@ class ExecutorRel<T extends RelSourceEntity> extends ExecutorBaseRel<T> {
       List.generate(count, (i) => IsarRelTargetEntity(0, 'Target #$i'),
           growable: false);
 
+  @override
   Future<List<T>> queryWithLinks(List<ConfigQueryWithLinks> args) {
     // TODO implement once the model is properly generated
     // see https://isar.dev/queries#links
