@@ -31,19 +31,24 @@ abstract class TestEntity extends EntityWithSettableId {
 @obx.Entity()
 @HiveType(typeId: 1)
 class TestEntityPlain implements TestEntity {
+  @override
   @HiveField(0)
   int id;
 
+  @override
   @HiveField(1)
   String tString;
 
+  @override
   @obx.Property(type: obx.PropertyType.int)
   @HiveField(2)
   int tInt; // 32-bit
 
+  @override
   @HiveField(3)
   int tLong; // 64-bit
 
+  @override
   @HiveField(4)
   double tDouble;
 
@@ -60,17 +65,22 @@ class TestEntityPlain implements TestEntity {
 // A separate entity for queried data so that indexes don't change CRUD results.
 @obx.Entity()
 class TestEntityIndexed implements TestEntity {
+  @override
   int id;
 
+  @override
   @obx.Index()
   String tString;
 
+  @override
   @obx.Index()
   @obx.Property(type: obx.PropertyType.int)
   int tInt; // 32-bit
 
+  @override
   int tLong; // 64-bit
 
+  @override
   double tDouble;
 
   TestEntityIndexed(this.id, this.tString, this.tInt, this.tLong, this.tDouble);
@@ -81,8 +91,10 @@ class TestEntityIndexed implements TestEntity {
 }
 
 abstract class RelSourceEntity extends EntityWithSettableId {
+  @override
   int get id;
 
+  @override
   set id(int value);
 
   String get tString;
@@ -104,17 +116,21 @@ abstract class RelSourceEntity extends EntityWithSettableId {
 @obx.Entity()
 @HiveType(typeId: 2)
 class RelSourceEntityPlain implements RelSourceEntity {
+  @override
   @HiveField(0)
   int id;
 
+  @override
   @HiveField(1)
   final String tString;
 
+  @override
   @HiveField(2)
   final int tLong; // 64-bit
 
   final obxRelTarget = obx.ToOne<RelTargetEntity>();
 
+  @override
   @obx.Transient()
   @HiveField(3)
   final int relTargetId;
@@ -139,16 +155,19 @@ class RelSourceEntityPlain implements RelSourceEntity {
 
 @obx.Entity()
 class RelSourceEntityIndexed implements RelSourceEntity {
-
+  @override
   int id;
 
+  @override
   @obx.Index()
   final String tString;
 
+  @override
   final int tLong; // 64-bit
 
   final obxRelTarget = obx.ToOne<RelTargetEntity>();
 
+  @override
   @obx.Transient()
   final int relTargetId;
 
@@ -173,6 +192,7 @@ class RelSourceEntityIndexed implements RelSourceEntity {
 @obx.Entity()
 @HiveType(typeId: 4)
 class RelTargetEntity extends EntityWithSettableId {
+  @override
   @HiveField(0)
   int id;
 

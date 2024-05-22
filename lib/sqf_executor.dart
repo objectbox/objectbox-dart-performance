@@ -35,9 +35,11 @@ abstract class Executor<T extends TestEntity> extends ExecutorBase<T> {
     });
   }
 
+  @override
   Future<void> close() => _db.close();
 
   // TODO use the generic _insertMany() if it doesn't decrease performance
+  @override
   Future<void> insertMany(List<T> items) async =>
       tracker.trackAsync('insertMany', () async {
         final tx = _db.batch();
@@ -48,6 +50,7 @@ abstract class Executor<T extends TestEntity> extends ExecutorBase<T> {
         }
       });
 
+  @override
   Future<void> updateMany(List<T> items) async =>
       tracker.trackAsync('updateMany', () async {
         final tx = _db.batch();
@@ -63,17 +66,21 @@ abstract class Executor<T extends TestEntity> extends ExecutorBase<T> {
           .map(reader)
           .toList();
 
+  @override
   Future<List<T>> readAll(List<int> ids) => tracker.trackAsync(
       'readAll', () async => (await _db.query(_table)).map(_fromMap).toList());
 
+  @override
   Future<List<T?>> queryById(List<int> ids, [String? benchmarkQualifier]) =>
       tracker.trackAsync('queryById' + (benchmarkQualifier ?? ''),
           () async => await _query(_db, _fromMap, 'id in (${ids.join(',')})'));
 
+  @override
   Future<void> removeMany(List<int> ids) async => tracker.trackAsync(
       'removeMany',
       () async => await _db.delete(_table, where: 'id in (${ids.join(',')})'));
 
+  @override
   Future<List<T>> queryStringEquals(List<String> values) => tracker.trackAsync(
       'queryStringEquals',
       () async => _db.transaction((txn) async {
@@ -111,6 +118,7 @@ class ExecutorPlain extends Executor<TestEntityPlain> {
     return TestEntityPlain(0, tString, tInt, tLong, tDouble);
   }
 
+  @override
   Future<ExecutorBaseRel> createRelBenchmark() =>
       Future.value(ExecutorRel.create<RelSourceEntityPlain>(tracker, _db));
 }
@@ -140,6 +148,7 @@ class ExecutorIndexed extends Executor<TestEntityIndexed> {
     return TestEntityIndexed(0, tString, tInt, tLong, tDouble);
   }
 
+  @override
   Future<ExecutorBaseRel> createRelBenchmark() =>
       Future.value(ExecutorRel.create<RelSourceEntityIndexed>(tracker, _db));
 }
@@ -192,8 +201,10 @@ class ExecutorRel<T extends RelSourceEntity> extends ExecutorBaseRel<T> {
       this._fromMap)
       : super(tracker);
 
+  @override
   Future<void> close() async {}
 
+  @override
   Future<void> insertData(int relSourceCount, int relTargetCount) async {
     final targets = prepareDataTargets(relTargetCount);
     await _insertMany(_db, targets, RelTargetEntity.toMap);
@@ -202,6 +213,7 @@ class ExecutorRel<T extends RelSourceEntity> extends ExecutorBaseRel<T> {
     await _insertMany(_db, sources, RelSourceEntity.toMap);
   }
 
+  @override
   Future<List<T>> queryWithLinks(List<ConfigQueryWithLinks> args) async =>
       tracker.trackAsync(
           'queryWithLinks',

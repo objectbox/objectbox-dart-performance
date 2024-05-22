@@ -16,24 +16,31 @@ abstract class Executor<T extends TestEntity> extends ExecutorBase<T> {
       : box = store.box(),
         super(tracker);
 
+  @override
   Future<void> close() async => store.close();
 
+  @override
   Future<void> insertMany(List<T> items) =>
       Future.value(tracker.track('insertMany', () => box.putMany(items)));
 
+  @override
   Future<void> updateMany(List<T> items) =>
       Future.value(tracker.track('updateMany', () => box.putMany(items)));
 
+  @override
   Future<List<T>> readAll(List<int> ids) =>
       Future.value(tracker.track('readAll', () => box.getAll()));
 
+  @override
   Future<List<T?>> queryById(List<int> ids, [String? benchmarkQualifier]) =>
       Future.value(tracker.track(
           'queryById' + (benchmarkQualifier ?? ''), () => box.getMany(ids)));
 
+  @override
   Future<void> removeMany(List<int> ids) =>
       Future.value(tracker.track('removeMany', () => box.removeMany(ids)));
 
+  @override
   Future<List<T>> queryStringEquals(List<String> values) =>
       Future.value(tracker.track(
           'queryStringEquals',
@@ -79,6 +86,7 @@ class ExecutorPlain extends Executor<TestEntityPlain> {
     return TestEntityPlain(0, tString, tInt, tLong, tDouble);
   }
 
+  @override
   Future<ExecutorBaseRel> createRelBenchmark() =>
       Future.value(ExecutorRel<RelSourceEntityPlain>(store, tracker));
 }
@@ -114,6 +122,7 @@ class ExecutorIndexed extends Executor<TestEntityIndexed> {
     return TestEntityIndexed(0, tString, tInt, tLong, tDouble);
   }
 
+  @override
   Future<ExecutorBaseRel> createRelBenchmark() =>
       Future.value(ExecutorRel<RelSourceEntityIndexed>(store, tracker));
 }
@@ -170,10 +179,12 @@ class ExecutorRel<T extends RelSourceEntity> extends ExecutorBaseRel<T> {
       : box = store.box(),
         super(tracker);
 
+  @override
   Future<void> close() async {
     // Do nothing, store is closed by Executor.
   }
 
+  @override
   Future<void> insertData(int relSourceCount, int relTargetCount) =>
       Future.sync(() {
         final targets = prepareDataTargets(relTargetCount);
@@ -184,6 +195,7 @@ class ExecutorRel<T extends RelSourceEntity> extends ExecutorBaseRel<T> {
         assert(store.box<RelTargetEntity>().count() == relTargetCount);
       });
 
+  @override
   Future<List<T>> queryWithLinks(List<ConfigQueryWithLinks> args) =>
       Future.value(tracker.track(
           'queryWithLinks',

@@ -5,14 +5,19 @@ part 'isar_model.g.dart';
 
 @collection
 class IsarTestEntityPlain implements TestEntity {
+  @override
   Id id;
 
+  @override
   String tString;
 
+  @override
   int tInt; // 32-bit
 
+  @override
   int tLong; // 64-bit
 
+  @override
   double tDouble;
 
   IsarTestEntityPlain(
@@ -22,16 +27,21 @@ class IsarTestEntityPlain implements TestEntity {
 // A separate entity for queried data so that indexes don't change CRUD results.
 @Collection()
 class IsarTestEntityIndexed implements TestEntity {
+  @override
   Id id;
 
+  @override
   @Index(type: IndexType.value)
   String tString;
 
+  @override
   @Index()
   int tInt; // 32-bit
 
+  @override
   int tLong; // 64-bit
 
+  @override
   double tDouble;
 
   IsarTestEntityIndexed(
@@ -40,12 +50,16 @@ class IsarTestEntityIndexed implements TestEntity {
 
 @collection
 class IsarRelSourceEntityPlain implements RelSourceEntity {
+  @override
   Id id;
 
+  @override
   final String tString;
 
+  @override
   final int tLong; // 64-bit
 
+  @override
   @Ignore()
   final int relTargetId;
 
@@ -65,13 +79,17 @@ class IsarRelSourceEntityPlain implements RelSourceEntity {
 
 @collection
 class IsarRelSourceEntityIndexed implements RelSourceEntity {
+  @override
   Id id;
 
+  @override
   @Index(type: IndexType.value)
   final String tString;
 
+  @override
   final int tLong; // 64-bit
 
+  @override
   @Ignore()
   final int relTargetId;
 
@@ -91,6 +109,7 @@ class IsarRelSourceEntityIndexed implements RelSourceEntity {
 
 @collection
 class IsarRelTargetEntity extends EntityWithSettableId {
+  @override
   Id id;
 
   @Index(type: IndexType.value)
