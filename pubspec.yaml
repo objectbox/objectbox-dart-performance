@@ -29,6 +29,7 @@ dev_dependencies:
   build_runner: any
   hive_generator: any
   isar_generator: any
+  flutter_lints: ^4.0.0
 
 #dependency_overrides:
 #  objectbox:
