@@ -23,6 +23,7 @@ dependencies:
   hive: ^2.0.4
   isar: ^3.1.0
   isar_flutter_libs: any
+  args: ^2.5.0
 
 dev_dependencies:
   objectbox_generator: any
