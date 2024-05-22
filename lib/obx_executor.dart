@@ -11,10 +11,9 @@ abstract class Executor<T extends TestEntity> extends ExecutorBase<T> {
   final Query<T> queryStringEq;
   final void Function(String) queryStringEqSetValue;
 
-  Executor._(TimeTracker tracker, this.store, this.queryStringEq,
-      this.queryStringEqSetValue)
-      : box = store.box(),
-        super(tracker);
+  Executor._(
+      super.tracker, this.store, this.queryStringEq, this.queryStringEqSetValue)
+      : box = store.box();
 
   @override
   Future<void> close() async => store.close();
@@ -57,12 +56,9 @@ abstract class Executor<T extends TestEntity> extends ExecutorBase<T> {
 
 /// Using an entity without indexes
 class ExecutorPlain extends Executor<TestEntityPlain> {
-  ExecutorPlain._(
-      TimeTracker tracker,
-      Store store,
-      Query<TestEntityPlain> queryStringEq,
-      void Function(String) queryStringEqSetValue)
-      : super._(tracker, store, queryStringEq, queryStringEqSetValue);
+  ExecutorPlain._(super.tracker, super.store, super.queryStringEq,
+      super.queryStringEqSetValue)
+      : super._();
 
   factory ExecutorPlain(Directory dbDir, TimeTracker tracker) {
     final store = Store(getObjectBoxModel(),
@@ -92,12 +88,9 @@ class ExecutorPlain extends Executor<TestEntityPlain> {
 
 /// Using an entity with indexes
 class ExecutorIndexed extends Executor<TestEntityIndexed> {
-  ExecutorIndexed._(
-      TimeTracker tracker,
-      Store store,
-      Query<TestEntityIndexed> queryStringEq,
-      void Function(String) queryStringEqSetValue)
-      : super._(tracker, store, queryStringEq, queryStringEqSetValue);
+  ExecutorIndexed._(super.tracker, super.store, super.queryStringEq,
+      super.queryStringEqSetValue)
+      : super._();
 
   factory ExecutorIndexed(Directory dbDir, TimeTracker tracker) {
     final store = Store(getObjectBoxModel(),
@@ -172,10 +165,8 @@ class ExecutorRel<T extends RelSourceEntity> extends ExecutorBaseRel<T> {
     return ExecutorRel._(tracker, store, queryT, querySetParams);
   }
 
-  ExecutorRel._(
-      TimeTracker tracker, this.store, this.query, this.querySetParams)
-      : box = store.box(),
-        super(tracker);
+  ExecutorRel._(super.tracker, this.store, this.query, this.querySetParams)
+      : box = store.box();
 
   @override
   Future<void> close() async {

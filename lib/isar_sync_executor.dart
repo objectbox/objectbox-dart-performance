@@ -55,7 +55,7 @@ abstract class Executor<T extends TestEntity> extends ExecutorBase<T> {
 
 /// Using an entity without indexes
 class ExecutorPlain extends Executor<IsarTestEntityPlain> {
-  ExecutorPlain._(Isar store, TimeTracker tracker) : super._(store, tracker);
+  ExecutorPlain._(super.store, super.tracker) : super._();
 
   static Future<Executor<IsarTestEntityPlain>> create(
       Directory dbDir, TimeTracker tracker) async {
@@ -100,7 +100,7 @@ class ExecutorPlain extends Executor<IsarTestEntityPlain> {
 
 /// Using an entity with indexes
 class ExecutorIndexed extends Executor<IsarTestEntityIndexed> {
-  ExecutorIndexed._(Isar store, TimeTracker tracker) : super._(store, tracker);
+  ExecutorIndexed._(super.store, super.tracker) : super._();
 
   static Future<Executor<IsarTestEntityIndexed>> create(
       Directory dbDir, TimeTracker tracker) async {
@@ -146,10 +146,9 @@ class ExecutorRel<T extends RelSourceEntity> extends ExecutorBaseRel<T> {
   final IsarCollection<T> _box;
   final IsarCollection<IsarRelTargetEntity> _boxTarget;
 
-  ExecutorRel._(TimeTracker tracker, this._store)
+  ExecutorRel._(super.tracker, this._store)
       : _box = _store.collection(),
-        _boxTarget = _store.isarRelTargetEntitys,
-        super(tracker);
+        _boxTarget = _store.isarRelTargetEntitys;
 
   @override
   Future<void> close() async => Future.value();

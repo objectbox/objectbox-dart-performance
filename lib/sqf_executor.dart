@@ -99,12 +99,8 @@ abstract class Executor<T extends TestEntity> extends ExecutorBase<T> {
 
 /// Using an entity without indexes
 class ExecutorPlain extends Executor<TestEntityPlain> {
-  ExecutorPlain._(
-      String table,
-      Database db,
-      TestEntityPlain Function(Map<String, dynamic>) fromMap,
-      TimeTracker tracker)
-      : super._(table, db, fromMap, tracker);
+  ExecutorPlain._(super.table, super.db, super.fromMap, super.tracker)
+      : super._();
 
   static Future<Executor<TestEntityPlain>> create(
       Directory dbDir, TimeTracker tracker) async {
@@ -129,12 +125,8 @@ class ExecutorPlain extends Executor<TestEntityPlain> {
 
 /// Using an entity with indexes
 class ExecutorIndexed extends Executor<TestEntityIndexed> {
-  ExecutorIndexed._(
-      String table,
-      Database db,
-      TestEntityIndexed Function(Map<String, dynamic>) fromMap,
-      TimeTracker tracker)
-      : super._(table, db, fromMap, tracker);
+  ExecutorIndexed._(super.table, super.db, super.fromMap, super.tracker)
+      : super._();
 
   static Future<Executor<TestEntityIndexed>> create(
       Directory dbDir, TimeTracker tracker) async {
@@ -201,9 +193,8 @@ class ExecutorRel<T extends RelSourceEntity> extends ExecutorBaseRel<T> {
     );
   }
 
-  ExecutorRel._(TimeTracker tracker, this._db, this._table, this._tableTarget,
-      this._fromMap)
-      : super(tracker);
+  ExecutorRel._(
+      super.tracker, this._db, this._table, this._tableTarget, this._fromMap);
 
   @override
   Future<void> close() async {}

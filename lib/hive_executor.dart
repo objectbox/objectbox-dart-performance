@@ -107,8 +107,7 @@ class ExecutorRel<T extends RelSourceEntity> extends ExecutorBaseRel<T> {
         await Hive.openBox('RelTargetEntity', path: path));
   }
 
-  ExecutorRel._(TimeTracker tracker, this._box, this._boxTarget)
-      : super(tracker);
+  ExecutorRel._(super.tracker, this._box, this._boxTarget);
 
   @override
   Future<void> close() async {
