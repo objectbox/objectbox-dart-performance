@@ -16,9 +16,17 @@ abstract class Executor<T extends TestEntity> extends ExecutorBase<T> {
       : super(tracker);
 
   static Future<Database> createDatabase(
-      Directory dbDir, String table, bool withIndexes) {
-    return openDatabase(dbDir.path, version: 1,
-        onCreate: (Database db, int version) async {
+      Directory dbDir, String table, bool withIndexes) async {
+    // Debug logging
+    // https://github.com/tekartik/sqflite/blob/master/sqflite/doc/dev_tips.md#debugging
+    // await databaseFactory.debugSetLogLevel(sqfliteLogLevelVerbose);
+
+    return openDatabase(dbDir.path, version: 1, onConfigure: (db) async {
+      // Make sure WAL is enabled on Android
+      // With debug logs on, should print "PRAGMA journal_mode=WAL"
+      // https://github.com/tekartik/sqflite/blob/master/sqflite/doc/dev_tips.md#enable-wal-on-android
+      await db.rawQuery('PRAGMA journal_mode=WAL');
+    }, onCreate: (Database db, int version) async {
       await db.execute('''
                   CREATE TABLE $table (
                     id integer primary key autoincrement,
