@@ -51,7 +51,7 @@ abstract class ExecutorBase<T extends TestEntity> {
   /// Verifies that the executor works as expected (returns proper results).
   Future<void> test({required int count, String? qString}) =>
       Future.sync(() async {
-        final checkCount = (String message, Iterable list, int count) =>
+        checkCount(String message, Iterable list, int count) =>
             RangeError.checkValueInInterval(list.length, count, count, message);
 
         final inserts = prepareData(count);

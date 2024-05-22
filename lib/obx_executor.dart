@@ -74,8 +74,7 @@ class ExecutorPlain extends Executor<TestEntityPlain> {
         .query(TestEntityPlain_.tString.equals(''))
         .build();
     final queryParam = query.param(TestEntityPlain_.tString);
-    final void Function(String) queryStringEqSetValue =
-        (String val) => queryParam.value = val;
+    queryStringEqSetValue(String val) => queryParam.value = val;
 
     return ExecutorPlain._(tracker, store, query, queryStringEqSetValue);
   }
@@ -110,8 +109,7 @@ class ExecutorIndexed extends Executor<TestEntityIndexed> {
         .query(TestEntityIndexed_.tString.equals(''))
         .build();
     final queryParam = query.param(TestEntityIndexed_.tString);
-    final void Function(String) queryStringEqSetValue =
-        (String val) => queryParam.value = val;
+    queryStringEqSetValue(String val) => queryParam.value = val;
 
     return ExecutorIndexed._(tracker, store, query, queryStringEqSetValue);
   }
