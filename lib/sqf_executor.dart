@@ -63,7 +63,7 @@ abstract class Executor<T extends TestEntity> extends ExecutorBase<T> {
         await tx.commit();
       });
 
-  Future<List<T>> _query<T>(DatabaseExecutor db,
+  Future<List<T>> _query(DatabaseExecutor db,
           T Function(Map<String, dynamic>) reader, String where,
           [List<Object?>? whereArgs]) async =>
       (await db.query(_table, where: where, whereArgs: whereArgs))
