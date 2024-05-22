@@ -37,21 +37,17 @@ class Executor extends ExecutorBase<TestEntityPlain> {
       tracker.trackAsync('insertMany', () async {
         int id = 1;
         final itemsById = <int, TestEntityPlain>{};
-        items.forEach((TestEntityPlain o) {
+        for (var o in items) {
           if (o.id == 0) o.id = id++;
           itemsById[o.id] = o;
-        });
+        }
         return await _box.putAll(itemsById);
       });
 
   @override
   Future<void> updateMany(List<TestEntityPlain> items) async =>
-      tracker.trackAsync(
-          'updateMany',
-          () async => await _box.putAll(Map<int, TestEntityPlain>.fromIterable(
-              items,
-              key: (o) => o.id,
-              value: (o) => o)));
+      tracker.trackAsync('updateMany',
+          () async => await _box.putAll({for (var o in items) o.id: o}));
 
   @override
   Future<List<TestEntityPlain>> readAll(List<int> optionalIds) =>
@@ -134,10 +130,10 @@ class ExecutorRel<T extends RelSourceEntity> extends ExecutorBaseRel<T> {
   @override
   Future<List<T>> queryWithLinks(List<ConfigQueryWithLinks> args) {
     if (!ExecutorBase.caseSensitive) {
-      args.forEach((config) {
+      for (var config in args) {
         config.sourceStringEquals.toLowerCase();
         config.targetStringEquals.toLowerCase();
-      });
+      }
     }
 
     return Future.value(tracker.track('queryWithLinks', () {
@@ -170,9 +166,9 @@ class ExecutorRel<T extends RelSourceEntity> extends ExecutorBaseRel<T> {
 Map<int, EntityT> _itemsById<EntityT>(List<EntityWithSettableId> list) {
   final result = <int, EntityT>{};
   var id = 1;
-  list.forEach((EntityWithSettableId o) {
+  for (var o in list) {
     if (o.id == 0) o.id = id++;
     result[o.id] = o as EntityT;
-  });
+  }
   return result;
 }

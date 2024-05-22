@@ -43,7 +43,9 @@ abstract class Executor<T extends TestEntity> extends ExecutorBase<T> {
   Future<void> insertMany(List<T> items) async =>
       tracker.trackAsync('insertMany', () async {
         final tx = _db.batch();
-        items.forEach((object) => tx.insert(_table, TestEntity.toMap(object)));
+        for (var object in items) {
+          tx.insert(_table, TestEntity.toMap(object));
+        }
         final ids = await tx.commit();
         for (int i = 0; i < ids.length; i++) {
           items[i].id = ids[i] as int;
@@ -54,8 +56,10 @@ abstract class Executor<T extends TestEntity> extends ExecutorBase<T> {
   Future<void> updateMany(List<T> items) async =>
       tracker.trackAsync('updateMany', () async {
         final tx = _db.batch();
-        items.forEach((object) => tx.update(_table, TestEntity.toMap(object),
-            where: 'id = ?', whereArgs: [object.id]));
+        for (var object in items) {
+          tx.update(_table, TestEntity.toMap(object),
+              where: 'id = ?', whereArgs: [object.id]);
+        }
         await tx.commit();
       });
 
@@ -240,8 +244,9 @@ class ExecutorRel<T extends RelSourceEntity> extends ExecutorBaseRel<T> {
 Future<void> _insertMany<T extends EntityWithSettableId>(
     Database db, List<T> items, Map<String, dynamic> Function(T) toMap) async {
   final tx = db.batch();
-  items.forEach(
-      (object) => tx.insert(items.first.runtimeType.toString(), toMap(object)));
+  for (var object in items) {
+    tx.insert(items.first.runtimeType.toString(), toMap(object));
+  }
   final ids = await tx.commit();
   for (int i = 0; i < ids.length; i++) {
     items[i].id = ids[i] as int;

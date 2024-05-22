@@ -28,7 +28,11 @@ abstract class ExecutorBase<T extends TestEntity> {
       count, (i) => createEntity('Entity #$i', i, i, i.toDouble()),
       growable: false);
 
-  void changeValues(List<T> items) => items.forEach((item) => item.tLong *= 2);
+  void changeValues(List<T> items) {
+    for (var item in items) {
+      item.tLong *= 2;
+    }
+  }
 
   List<T> allNotNull(List<T?> items) =>
       items.map((e) => e!).toList(growable: false);
