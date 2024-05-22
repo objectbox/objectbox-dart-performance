@@ -60,7 +60,7 @@ class Executor extends ExecutorBase<TestEntityPlain> {
   @override
   Future<List<TestEntityPlain?>> queryById(List<int> ids,
           [String? benchmarkQualifier]) =>
-      Future.value(tracker.track('queryById' + (benchmarkQualifier ?? ''),
+      Future.value(tracker.track('queryById${benchmarkQualifier ?? ''}',
           () => ids.map(_box.get).toList()));
 
   @override

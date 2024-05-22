@@ -43,8 +43,8 @@ abstract class Executor<T extends TestEntity> extends ExecutorBase<T> {
 
   @override
   Future<List<T?>> queryById(List<int> ids, [String? benchmarkQualifier]) =>
-      Future.value(tracker.track('queryById' + (benchmarkQualifier ?? ''),
-          () => _box.getAllSync(ids)));
+      Future.value(tracker.track(
+          'queryById${benchmarkQualifier ?? ''}', () => _box.getAllSync(ids)));
 
   @override
   Future<void> removeMany(List<int> ids) => Future.value(

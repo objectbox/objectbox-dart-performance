@@ -72,7 +72,7 @@ abstract class Executor<T extends TestEntity> extends ExecutorBase<T> {
 
   @override
   Future<List<T?>> queryById(List<int> ids, [String? benchmarkQualifier]) =>
-      tracker.trackAsync('queryById' + (benchmarkQualifier ?? ''),
+      tracker.trackAsync('queryById${benchmarkQualifier ?? ''}',
           () async => await _query(_db, _fromMap, 'id in (${ids.join(',')})'));
 
   @override
