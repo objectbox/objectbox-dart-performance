@@ -16,10 +16,12 @@ import 'sqf_executor.dart' as sqf;
 import 'time_tracker.dart';
 
 void main() {
-  runApp(MyApp());
+  runApp(const MyApp());
 }
 
 class MyApp extends StatelessWidget {
+  const MyApp({super.key});
+
   // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
@@ -41,13 +43,13 @@ class MyApp extends StatelessWidget {
         // closer together (more dense) than on mobile platforms.
         visualDensity: VisualDensity.adaptivePlatformDensity,
       ),
-      home: MyHomePage(title: 'DB Benchmark'),
+      home: const MyHomePage(title: 'DB Benchmark'),
     );
   }
 }
 
 class MyHomePage extends StatefulWidget {
-  MyHomePage({Key? key, required this.title}) : super(key: key);
+  const MyHomePage({super.key, required this.title});
 
   // This widget is the home page of your application. It is stateful, meaning
   // that it has a State object (defined below) that contains fields that affect
@@ -61,7 +63,7 @@ class MyHomePage extends StatefulWidget {
   final String title;
 
   @override
-  _MyHomePageState createState() => _MyHomePageState();
+  State<MyHomePage> createState() => _MyHomePageState();
 }
 
 enum DbEngine { ObjectBox, sqflite, Hive, IsarSync }
@@ -120,7 +122,7 @@ class _MyHomePageState extends State<MyHomePage> {
     /// avoid creating and deleting many files in a potentially backed up
     /// location on the test device.
     getTemporaryDirectory().then((value) {
-      debugPrint("Using directory: " + value.absolute.path);
+      debugPrint("Using directory: ${value.absolute.path}");
       appDir.complete(value);
     });
   }
@@ -321,14 +323,14 @@ class _MyHomePageState extends State<MyHomePage> {
 
           final ids = inserts.map((e) => e.id).toList(growable: false);
 
-          final randomSlice = (List<int> list, int length) {
+          randomSlice(List<int> list, int length) {
             final start = list.length == length
                 ? 0
                 : random.nextInt(list.length - length);
             final result = list.sublist(start, start + length);
             assert(result.length == length);
             return result;
-          };
+          }
 
           int resultCount = 0;
           for (var i = 0; i < runs && _state == RunState.running; i++) {
@@ -386,7 +388,7 @@ class _MyHomePageState extends State<MyHomePage> {
 
   Future<bool> _testBenchmark(ExecutorBase bench) async {
     try {
-      final count = 100;
+      const count = 100;
       await bench.test(
           count: count,
           qString: _mode == Mode.Queries
@@ -417,8 +419,7 @@ class _MyHomePageState extends State<MyHomePage> {
       body: Center(
         // Center is a layout widget. It takes a single child and positions it
         // in the middle of the parent.
-        child: Container(
-            child: Column(
+        child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Row(children: [
@@ -510,7 +511,7 @@ class _MyHomePageState extends State<MyHomePage> {
                     children: _resultRows)),
             const Spacer(),
           ],
-        )),
+        ),
       ),
       floatingActionButton: _state == RunState.stopping
           ? null
@@ -531,8 +532,8 @@ class _MyHomePageState extends State<MyHomePage> {
 
 List<DropdownMenuItem<T>> enumDropDownItems<T>(List<T> values) => values
     .map((dynamic e) => DropdownMenuItem<T>(
+          value: e,
           child:
               Text(e.toString().substring(e.runtimeType.toString().length + 1)),
-          value: e,
         ))
     .toList();
