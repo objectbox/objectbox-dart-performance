@@ -67,7 +67,7 @@ abstract class Executor<T extends TestEntity> extends ExecutorBase<T> {
           .toList();
 
   @override
-  Future<List<T>> readAll(List<int> ids) => tracker.trackAsync(
+  Future<List<T>> readAll(List<int> optionalIds) => tracker.trackAsync(
       'readAll', () async => (await _db.query(_table)).map(_fromMap).toList());
 
   @override

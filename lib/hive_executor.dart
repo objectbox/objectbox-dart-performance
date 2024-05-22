@@ -54,7 +54,7 @@ class Executor extends ExecutorBase<TestEntityPlain> {
               value: (o) => o)));
 
   @override
-  Future<List<TestEntityPlain>> readAll(List<int> ids) =>
+  Future<List<TestEntityPlain>> readAll(List<int> optionalIds) =>
       Future.value(tracker.track('readAll', () => _box.values.toList()));
 
   @override

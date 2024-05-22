@@ -45,7 +45,7 @@ abstract class ExecutorBase<T extends TestEntity> {
 
   Future<void> removeMany(List<int> ids);
 
-  Future<List<T>> queryStringEquals(List<String> val) =>
+  Future<List<T>> queryStringEquals(List<String> values) =>
       throw UnimplementedError();
 
   /// Verifies that the executor works as expected (returns proper results).

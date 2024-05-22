@@ -28,7 +28,7 @@ abstract class Executor<T extends TestEntity> extends ExecutorBase<T> {
       Future.value(tracker.track('updateMany', () => box.putMany(items)));
 
   @override
-  Future<List<T>> readAll(List<int> ids) =>
+  Future<List<T>> readAll(List<int> optionalIds) =>
       Future.value(tracker.track('readAll', () => box.getAll()));
 
   @override
