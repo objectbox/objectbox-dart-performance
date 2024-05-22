@@ -67,7 +67,7 @@ class IsarRelSourceEntityPlain implements RelSourceEntity {
 
   // Note: constructor arg types must match with fromMap used by sqflite.
   IsarRelSourceEntityPlain(this.id, this.tString, this.tLong,
-      [this.relTargetId = 0]) {}
+      [this.relTargetId = 0]);
 
   IsarRelSourceEntityPlain.forInsert(
       this.tString, this.tLong, IsarRelTargetEntity? relTarget)

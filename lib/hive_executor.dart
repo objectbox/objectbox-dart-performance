@@ -135,8 +135,8 @@ class ExecutorRel<T extends RelSourceEntity> extends ExecutorBaseRel<T> {
   Future<List<T>> queryWithLinks(List<ConfigQueryWithLinks> args) {
     if (!ExecutorBase.caseSensitive) {
       args.forEach((config) {
-        config.sourceStringEquals..toLowerCase();
-        config.targetStringEquals..toLowerCase();
+        config.sourceStringEquals.toLowerCase();
+        config.targetStringEquals.toLowerCase();
       });
     }
 
